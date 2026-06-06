@@ -5,8 +5,6 @@ import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import { cn } from "@/lib/utils";
 
-import ColorPalettePanel from "@/components/layout/ColorPalettePanel";
-
 interface AppShellProps {
   children: React.ReactNode;
   pageTitle: string;
@@ -37,7 +35,6 @@ export default function AppShell({
         />
         <main className="flex-1 p-5 lg:p-6 animate-fade-up">{children}</main>
       </div>
-      <ColorPalettePanel />
     </div>
   );
 }
