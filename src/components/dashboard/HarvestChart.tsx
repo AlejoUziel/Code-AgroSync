@@ -51,7 +51,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function HarvestChart() {
   return (
-    <div className="bg-white rounded-xl border border-[var(--border)] p-5 h-full">
+    <div className="bg-card rounded-xl border border-[var(--border)] p-5 h-full">
       <div className="flex items-start justify-between mb-5">
         <div>
           <h2 className="font-heading text-sm text-[#1E1E1E]">

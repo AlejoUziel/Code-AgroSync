@@ -214,7 +214,7 @@ export default function UsuariosPage() {
           { label: "Empresas", value: empresaDB.records.length, sub: `${activeEmpresas} activas`, icon: <Building2 size={16} className="text-[var(--primary)]" /> },
           { label: "Roles Distintos", value: [...new Set(usuarioDB.records.map((u) => u.rol))].length, sub: "tipos de acceso" },
         ].map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-[var(--border)] p-4 flex items-start gap-3">
+          <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4 flex items-start gap-3">
             {s.icon && (
               <div className="w-9 h-9 rounded-lg bg-[var(--secondary)] flex items-center justify-center shrink-0">
                 {s.icon}
@@ -230,7 +230,7 @@ export default function UsuariosPage() {
       </div>
 
       {/* ─── Main card ────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-[var(--border)]">
+      <div className="bg-card rounded-xl border border-[var(--border)]">
         {/* Tabs + toolbar */}
         <div className="flex items-center gap-0 border-b border-[var(--border)] px-4 pt-3">
           {(["usuarios", "empresas"] as TabKey[]).map((t) => (
@@ -313,7 +313,7 @@ export default function UsuariosPage() {
             <select
               value={filterRol}
               onChange={(e) => setFilterRol(e.target.value)}
-              className="h-8 px-2 text-xs font-body rounded-lg border border-[var(--border)] bg-white outline-none focus:border-[var(--primary)] transition-colors"
+              className="h-8 px-2 text-xs font-body rounded-lg border border-[var(--border)] bg-card outline-none focus:border-[var(--primary)] transition-colors"
             >
               <option value="">Todos los roles</option>
               {["Administrador", "Gerente de Campo", "Supervisor", "Operador", "Analista", "Jornalero"].map((r) => (
@@ -323,7 +323,7 @@ export default function UsuariosPage() {
             <select
               value={filterEmpresaId}
               onChange={(e) => setFilterEmpresaId(e.target.value)}
-              className="h-8 px-2 text-xs font-body rounded-lg border border-[var(--border)] bg-white outline-none focus:border-[var(--primary)] transition-colors"
+              className="h-8 px-2 text-xs font-body rounded-lg border border-[var(--border)] bg-card outline-none focus:border-[var(--primary)] transition-colors"
             >
               <option value="">Todas las empresas</option>
               {empresaDB.records.map((e) => (
@@ -333,7 +333,7 @@ export default function UsuariosPage() {
             <select
               value={filterEstado}
               onChange={(e) => setFilterEstado(e.target.value)}
-              className="h-8 px-2 text-xs font-body rounded-lg border border-[var(--border)] bg-white outline-none focus:border-[var(--primary)] transition-colors"
+              className="h-8 px-2 text-xs font-body rounded-lg border border-[var(--border)] bg-card outline-none focus:border-[var(--primary)] transition-colors"
             >
               <option value="">Todos los estados</option>
               {["Activo", "Inactivo", "Suspendido"].map((s) => (

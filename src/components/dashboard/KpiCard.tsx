@@ -33,7 +33,7 @@ export default function KpiCard({
       : "text-[#9CA3AF]";
 
   return (
-    <div className="bg-white rounded-xl border border-[var(--border)] p-5 card-hover group cursor-default transition-all duration-200 hover:border-[var(--primary)]/30 hover:shadow-sm">
+    <div className="bg-card rounded-xl border border-[var(--border)] p-5 card-hover group cursor-default transition-all duration-200 hover:border-[var(--primary)]/30 hover:shadow-sm">
       <div className="flex items-start justify-between mb-4">
         <div className="w-9 h-9 rounded-lg bg-[var(--secondary)] flex items-center justify-center group-hover:bg-[var(--primary)]/10 transition-colors">
           {icon}

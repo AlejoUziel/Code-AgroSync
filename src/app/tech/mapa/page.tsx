@@ -34,7 +34,7 @@ export default function MapaPage() {
     <AppShell pageTitle="Mapa Interactivo Agrícola" pageSubtitle="Tecnológico · Vista satelital de parcelas y cultivos">
       <div className="space-y-4">
         {/* Map container */}
-        <div className="bg-white rounded-xl border border-[var(--border)] overflow-hidden" style={{ height: "calc(100vh - 220px)", minHeight: 480 }}>
+        <div className="bg-card rounded-xl border border-[var(--border)] overflow-hidden" style={{ height: "calc(100vh - 220px)", minHeight: 480 }}>
           <div className="flex h-full">
             {/* Left panel */}
             <div className="w-64 border-r border-[var(--border)] flex flex-col overflow-hidden shrink-0">
@@ -48,7 +48,7 @@ export default function MapaPage() {
                   {layerData.map((layer) => (
                     <label key={layer.label} className="flex items-center gap-2.5 cursor-pointer group">
                       <div className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${layer.active ? "bg-[var(--primary)] border-[var(--primary)]" : "border-[var(--border)] group-hover:border-[var(--primary)]/50"}`}>
-                        {layer.active && <div className="w-2 h-2 bg-white rounded-sm" />}
+                        {layer.active && <div className="w-2 h-2 bg-card rounded-sm" />}
                       </div>
                       <span className="font-body text-xs text-[#6B7280] group-hover:text-[#1E1E1E] transition-colors">{layer.label}</span>
                       {layer.count && <span className="ml-auto font-body text-[10px] text-[#C4C4C4]">{layer.count}</span>}
@@ -101,7 +101,7 @@ export default function MapaPage() {
                       <div className="bg-[#1E1E1E] rounded-lg px-3 py-2 shadow-xl whitespace-nowrap">
                         <p className="font-heading text-xs text-white">{p.nombre}</p>
                         <p className="font-body text-[11px] text-white/60">{p.cultivo}</p>
-                        <Badge className={`text-[9px] px-1.5 border-0 mt-1 ${p.estado === "Activa" ? "bg-[var(--primary)]/20 text-[var(--accent)]" : p.estado === "Alerta" ? "bg-amber-500/20 text-amber-300" : "bg-white/10 text-white/50"}`}>
+                        <Badge className={`text-[9px] px-1.5 border-0 mt-1 ${p.estado === "Activa" ? "bg-[var(--primary)]/20 text-[var(--accent)]" : p.estado === "Alerta" ? "bg-amber-500/20 text-amber-300" : "bg-card/10 text-white/50"}`}>
                           {p.estado}
                         </Badge>
                         <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#1E1E1E]" />
@@ -121,7 +121,7 @@ export default function MapaPage() {
                   <button
                     key={ctrl.label}
                     title={ctrl.label}
-                    className="w-8 h-8 rounded-lg bg-white shadow-md flex items-center justify-center text-[#6B7280] hover:text-[var(--primary)] hover:shadow-lg transition-all"
+                    className="w-8 h-8 rounded-lg bg-card shadow-md flex items-center justify-center text-[#6B7280] hover:text-[var(--primary)] hover:shadow-lg transition-all"
                   >
                     {ctrl.icon}
                   </button>
@@ -129,7 +129,7 @@ export default function MapaPage() {
               </div>
 
               {/* Legend */}
-              <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl p-3 border border-[var(--border)] z-10">
+              <div className="absolute bottom-4 left-4 bg-card/90 backdrop-blur-sm rounded-xl p-3 border border-[var(--border)] z-10">
                 <p className="font-heading text-[10px] text-[#9CA3AF] uppercase tracking-wider mb-2">Leyenda</p>
                 {[
                   { label: "Activa", color: "bg-[var(--primary)]" },

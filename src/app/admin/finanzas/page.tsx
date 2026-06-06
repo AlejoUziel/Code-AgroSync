@@ -36,7 +36,7 @@ export default function FinanzasPage() {
             { label: "Utilidad Neta", value: "$240K", change: "+21.3%", up: true, icon: <PiggyBank size={16} className="text-[var(--primary)]" /> },
             { label: "Margen", value: "38.7%", change: "+2.4pp", up: true, icon: <ArrowUpRight size={16} className="text-[var(--primary)]" /> },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-[var(--border)] p-4">
+            <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center">{s.icon}</div>
                 <div className={`flex items-center gap-1 text-[11px] font-body ${s.up ? "text-[var(--primary)]" : "text-red-500"}`}>
@@ -53,7 +53,7 @@ export default function FinanzasPage() {
         {/* Charts row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Ingresos vs Gastos */}
-          <div className="bg-white rounded-xl border border-[var(--border)] p-5">
+          <div className="bg-card rounded-xl border border-[var(--border)] p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-heading text-sm text-[#1E1E1E]">Ingresos vs Gastos</h2>
@@ -87,7 +87,7 @@ export default function FinanzasPage() {
           </div>
 
           {/* Gastos by category */}
-          <div className="bg-white rounded-xl border border-[var(--border)] p-5">
+          <div className="bg-card rounded-xl border border-[var(--border)] p-5">
             <h2 className="font-heading text-sm text-[#1E1E1E] mb-4">Distribución de Gastos</h2>
             <div className="space-y-3">
               {[
@@ -118,7 +118,7 @@ export default function FinanzasPage() {
         </div>
 
         {/* Recent transactions */}
-        <div className="bg-white rounded-xl border border-[var(--border)]">
+        <div className="bg-card rounded-xl border border-[var(--border)]">
           <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
             <h2 className="font-heading text-sm text-[#1E1E1E]">Transacciones Recientes</h2>
             <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 transition-all">

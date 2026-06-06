@@ -188,7 +188,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               collapsed ? "justify-center" : "",
               pathname === "/"
                 ? "bg-primary/15 text-accent border-l-2 border-primary"
-                : "text-white/60 hover:text-white/90 hover:bg-white/5"
+                : "text-white/60 hover:text-white/90 hover:bg-card/5"
             )}
             title={collapsed ? "Dashboard" : undefined}
           >
@@ -219,7 +219,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   </span>
                 )}
                 {collapsed ? (
-                  <div className="w-4 h-px bg-white/20" />
+                  <div className="w-4 h-px bg-card/20" />
                 ) : (
                   <span className="transition-transform duration-200">
                     {openGroups[group.category] ? (
@@ -244,7 +244,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                         collapsed ? "justify-center" : "",
                         isActive(item.href)
                           ? "bg-primary/12 text-accent border-l-2 border-primary pl-[9px]"
-                          : "text-white/55 hover:text-white/85 hover:bg-white/5"
+                          : "text-white/55 hover:text-white/85 hover:bg-card/5"
                       )}
                     >
                       <span className={cn("shrink-0", isActive(item.href) ? "text-accent" : "")}>
@@ -295,13 +295,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             {!collapsed && (
               <div className="flex items-center gap-1">
                 <button
-                  className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors"
+                  className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-card/5 transition-colors"
                   title="Configuración"
                 >
                   <Settings size={13} />
                 </button>
                 <button
-                  className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors"
+                  className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-card/5 transition-colors"
                   title="Cerrar sesión"
                 >
                   <LogOut size={13} />

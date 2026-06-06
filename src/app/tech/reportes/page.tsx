@@ -41,7 +41,7 @@ export default function ReportesPage() {
             { label: "Descargados", value: "87", sub: "en 30 días" },
             { label: "Automáticos", value: "12", sub: "programados" },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-[var(--border)] p-4">
+            <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4">
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className="font-heading text-2xl text-[#1E1E1E] mt-1">{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -50,7 +50,7 @@ export default function ReportesPage() {
         </div>
 
         {/* Templates */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5">
+        <div className="bg-card rounded-xl border border-[var(--border)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-heading text-sm text-[#1E1E1E]">Plantillas de Reportes</h2>
             <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors">
@@ -74,7 +74,7 @@ export default function ReportesPage() {
         </div>
 
         {/* Recent reports */}
-        <div className="bg-white rounded-xl border border-[var(--border)]">
+        <div className="bg-card rounded-xl border border-[var(--border)]">
           <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
             <h2 className="font-heading text-sm text-[#1E1E1E]">Reportes Recientes</h2>
             <button className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 transition-all">

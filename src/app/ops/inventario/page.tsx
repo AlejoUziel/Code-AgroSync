@@ -39,7 +39,7 @@ export default function InventarioPage() {
             { label: "Agotados", value: "3", sub: "sin stock", alert: true },
             { label: "Valor Inventario", value: "$284K", sub: "valorización total" },
           ].map((s) => (
-            <div key={s.label} className={`bg-white rounded-xl border p-4 ${s.alert ? "border-amber-200" : "border-[var(--border)]"}`}>
+            <div key={s.label} className={`bg-card rounded-xl border p-4 ${s.alert ? "border-amber-200" : "border-[var(--border)]"}`}>
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className={`font-heading text-2xl mt-1 ${s.alert ? "text-amber-500" : "text-[#1E1E1E]"}`}>{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -59,7 +59,7 @@ export default function InventarioPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-xl border border-[var(--border)]">
+        <div className="bg-card rounded-xl border border-[var(--border)]">
           <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
             <div className="flex items-center gap-2 bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] flex-1 max-w-xs focus-within:border-[var(--primary)] transition-colors">
               <Search size={13} className="text-[#9CA3AF]" />

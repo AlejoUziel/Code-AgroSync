@@ -39,7 +39,7 @@ export default function WeatherWidget() {
           { icon: <Wind size={12} className="text-[var(--accent)]" />, label: "Viento", value: "14 km/h" },
           { icon: <Thermometer size={12} className="text-red-400" />, label: "Sensación", value: "30°" },
         ].map((stat) => (
-          <div key={stat.label} className="bg-white/5 rounded-lg p-2 text-center">
+          <div key={stat.label} className="bg-card/5 rounded-lg p-2 text-center">
             <div className="flex justify-center mb-1">{stat.icon}</div>
             <p className="font-heading text-xs text-white">{stat.value}</p>
             <p className="font-body text-[10px] text-white/40">{stat.label}</p>

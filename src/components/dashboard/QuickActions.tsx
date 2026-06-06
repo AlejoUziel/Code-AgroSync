@@ -32,7 +32,7 @@ const actions = [
 
 export default function QuickActions() {
   return (
-    <div className="bg-white rounded-xl border border-[var(--border)] p-4">
+    <div className="bg-card rounded-xl border border-[var(--border)] p-4">
       <h2 className="font-heading text-sm text-[#1E1E1E] mb-3">Acciones Rápidas</h2>
       <div className="space-y-1.5">
         {actions.map((action) => (

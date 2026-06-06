@@ -33,7 +33,7 @@ export default function ParcelasPage() {
             { label: "En Producción", value: "38", sub: "activas" },
             { label: "En Alerta", value: "2", sub: "requieren atención" },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-[var(--border)] p-4">
+            <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4">
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className="font-heading text-2xl text-[#1E1E1E] mt-1">{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -42,7 +42,7 @@ export default function ParcelasPage() {
         </div>
 
         {/* Table card */}
-        <div className="bg-white rounded-xl border border-[var(--border)]">
+        <div className="bg-card rounded-xl border border-[var(--border)]">
           {/* Toolbar */}
           <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
             <div className="flex items-center gap-2 bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] flex-1 max-w-xs focus-within:border-[var(--primary)] transition-colors">

@@ -42,7 +42,7 @@ export default function ProduccionPage() {
             { label: "Rendimiento Prom.", value: "6.8 t/ha", sub: "vs 6.2 t/ha año ant." },
             { label: "Próx. Cosecha", value: "Jun 10", sub: "Frijol Negro FB-80" },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-[var(--border)] p-4">
+            <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4">
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className="font-heading text-2xl text-[#1E1E1E] mt-1">{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -52,7 +52,7 @@ export default function ProduccionPage() {
 
         {/* Chart + meta */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 bg-white rounded-xl border border-[var(--border)] p-5">
+          <div className="lg:col-span-2 bg-card rounded-xl border border-[var(--border)] p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-heading text-sm text-[#1E1E1E]">Producción Mensual</h2>
@@ -79,7 +79,7 @@ export default function ProduccionPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-[var(--border)] p-5">
+          <div className="bg-card rounded-xl border border-[var(--border)] p-5">
             <h2 className="font-heading text-sm text-[#1E1E1E] mb-3">Meta Anual</h2>
             <div className="text-center py-4">
               <div className="relative inline-flex items-center justify-center mb-3">
@@ -116,7 +116,7 @@ export default function ProduccionPage() {
         </div>
 
         {/* Harvest records */}
-        <div className="bg-white rounded-xl border border-[var(--border)]">
+        <div className="bg-card rounded-xl border border-[var(--border)]">
           <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
             <h2 className="font-heading text-sm text-[#1E1E1E]">Registros de Cosecha</h2>
             <div className="ml-auto flex items-center gap-2">

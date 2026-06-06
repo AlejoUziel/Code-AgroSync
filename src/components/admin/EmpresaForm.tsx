@@ -132,7 +132,7 @@ export default function EmpresaForm({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl border-[var(--border)] bg-white p-0 overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl border-[var(--border)] bg-card p-0 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <DialogHeader className="px-6 pt-5 pb-4 border-b border-[var(--border)] shrink-0">
           <div className="flex items-center gap-3">

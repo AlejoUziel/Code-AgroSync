@@ -65,7 +65,7 @@ const typeColors: Record<string, string> = {
 
 export default function RecentActivity() {
   return (
-    <div className="bg-white rounded-xl border border-[var(--border)] p-5">
+    <div className="bg-card rounded-xl border border-[var(--border)] p-5">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-heading text-sm text-[#1E1E1E]">Actividad Reciente</h2>
         <button className="text-xs font-body text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors">

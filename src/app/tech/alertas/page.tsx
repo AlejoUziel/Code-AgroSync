@@ -60,7 +60,7 @@ export default function AlertasPage() {
             { label: "Advertencias", value: "2", sub: "este día" },
             { label: "Total Hoy", value: `${alertas.length}`, sub: "notificaciones" },
           ].map((s) => (
-            <div key={s.label} className={`bg-white rounded-xl border p-4 ${s.alert && parseInt(s.value) > 0 ? "border-red-200" : "border-[var(--border)]"}`}>
+            <div key={s.label} className={`bg-card rounded-xl border p-4 ${s.alert && parseInt(s.value) > 0 ? "border-red-200" : "border-[var(--border)]"}`}>
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className={`font-heading text-2xl mt-1 ${s.alert && parseInt(s.value) > 0 ? "text-red-500" : "text-[#1E1E1E]"}`}>{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -69,7 +69,7 @@ export default function AlertasPage() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex items-center gap-1 bg-white rounded-xl border border-[var(--border)] p-1.5 w-fit">
+        <div className="flex items-center gap-1 bg-card rounded-xl border border-[var(--border)] p-1.5 w-fit">
           {["Todas", "No leídas", "Críticas", "Advertencias", "Info"].map((tab, i) => (
             <button
               key={tab}
@@ -107,7 +107,7 @@ export default function AlertasPage() {
                 key={alerta.id}
                 className={cn(
                   "flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer hover:shadow-sm",
-                  alerta.leida ? "bg-white border-[var(--border)] opacity-70" : `${cfg.bg} border`
+                  alerta.leida ? "bg-card border-[var(--border)] opacity-70" : `${cfg.bg} border`
                 )}
               >
                 {/* Unread dot */}
@@ -144,11 +144,11 @@ export default function AlertasPage() {
                 {/* Actions */}
                 <div className="flex items-center gap-1 shrink-0">
                   {!alerta.leida && (
-                    <button className="p-1.5 rounded-md hover:bg-white/60 text-[#9CA3AF] hover:text-[#1E1E1E] transition-colors" title="Marcar como leída">
+                    <button className="p-1.5 rounded-md hover:bg-card/60 text-[#9CA3AF] hover:text-[#1E1E1E] transition-colors" title="Marcar como leída">
                       <Check size={13} />
                     </button>
                   )}
-                  <button className="p-1.5 rounded-md hover:bg-white/60 text-[#9CA3AF] hover:text-red-500 transition-colors" title="Eliminar">
+                  <button className="p-1.5 rounded-md hover:bg-card/60 text-[#9CA3AF] hover:text-red-500 transition-colors" title="Eliminar">
                     <Trash2 size={13} />
                   </button>
                 </div>
@@ -158,7 +158,7 @@ export default function AlertasPage() {
         </div>
 
         {/* Notification settings */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5">
+        <div className="bg-card rounded-xl border border-[var(--border)] p-5">
           <div className="flex items-center gap-2 mb-4">
             <Settings size={14} className="text-[var(--primary)]" />
             <h2 className="font-heading text-sm text-[#1E1E1E]">Configuración de Alertas</h2>
@@ -178,7 +178,7 @@ export default function AlertasPage() {
                   config.active ? "bg-[var(--primary)]" : "bg-[var(--border)]"
                 )}>
                   <div className={cn(
-                    "w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute transition-transform",
+                    "w-3.5 h-3.5 rounded-full bg-card shadow-sm absolute transition-transform",
                     config.active ? "translate-x-4" : "translate-x-0.5"
                   )} />
                 </div>

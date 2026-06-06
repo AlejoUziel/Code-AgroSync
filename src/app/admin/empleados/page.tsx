@@ -32,7 +32,7 @@ export default function EmpleadosPage() {
             { label: "Contratos Temp.", value: "38", sub: "temporales" },
             { label: "Nómina Mensual", value: "$1.2M", sub: "total bruto" },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-[var(--border)] p-4">
+            <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4">
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className="font-heading text-2xl text-[#1E1E1E] mt-1">{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -43,7 +43,7 @@ export default function EmpleadosPage() {
         {/* Employee cards grid (top 3) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {empleados.slice(0, 3).map((e) => (
-            <div key={e.id} className="bg-white rounded-xl border border-[var(--border)] p-5 hover:border-[var(--primary)]/30 hover:shadow-sm transition-all cursor-pointer group">
+            <div key={e.id} className="bg-card rounded-xl border border-[var(--border)] p-5 hover:border-[var(--primary)]/30 hover:shadow-sm transition-all cursor-pointer group">
               <div className="flex items-start justify-between mb-3">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-[var(--primary)]/15 text-[var(--primary)] text-sm font-heading">{e.avatar}</AvatarFallback>
@@ -68,7 +68,7 @@ export default function EmpleadosPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-xl border border-[var(--border)]">
+        <div className="bg-card rounded-xl border border-[var(--border)]">
           <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
             <div className="flex items-center gap-2 bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] flex-1 max-w-xs focus-within:border-[var(--primary)] transition-colors">
               <Search size={13} className="text-[#9CA3AF]" />

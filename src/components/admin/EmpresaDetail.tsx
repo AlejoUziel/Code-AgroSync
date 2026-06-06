@@ -54,7 +54,7 @@ export default function EmpresaDetail({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg border-[var(--border)] bg-white p-0 overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-lg border-[var(--border)] bg-card p-0 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header gradient */}
         <div className="bg-gradient-to-br from-[#1E1E1E] to-[#2A2A2A] px-6 pt-6 pb-5 shrink-0">
           <div className="flex items-start justify-between">
