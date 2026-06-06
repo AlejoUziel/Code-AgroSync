@@ -56,19 +56,19 @@ const activities = [
 ];
 
 const typeColors: Record<string, string> = {
-  harvest: "bg-[var(--primary)]/15 text-[var(--primary)]",
+  harvest: "bg-primary/15 text-primary",
   treatment: "bg-amber-100 text-amber-600",
   inventory: "bg-blue-100 text-blue-600",
-  crop: "bg-[var(--accent)]/20 text-[var(--primary-dark)]",
+  crop: "bg-accent/20 text-[var(--primary-dark)]",
   report: "bg-purple-100 text-purple-600",
 };
 
 export default function RecentActivity() {
   return (
-    <div className="bg-card rounded-xl border border-[var(--border)] p-5">
+    <div className="bg-card rounded-xl border border-border p-5">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-heading text-sm text-[#1E1E1E]">Actividad Reciente</h2>
-        <button className="text-xs font-body text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors">
+        <button className="text-xs font-body text-primary hover:text-[var(--primary-dark)] transition-colors">
           Ver registro completo
         </button>
       </div>
@@ -94,7 +94,7 @@ export default function RecentActivity() {
               <p className="text-xs font-body text-[#1E1E1E] leading-relaxed">
                 <span className="font-medium-body">{activity.user}</span>{" "}
                 {activity.action}{" "}
-                <span className="font-medium-body text-[var(--primary)]">
+                <span className="font-medium-body text-primary">
                   {activity.target}
                 </span>
               </p>
@@ -113,3 +113,4 @@ export default function RecentActivity() {
     </div>
   );
 }
+

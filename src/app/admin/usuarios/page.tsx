@@ -40,7 +40,7 @@ import { cn } from "@/lib/utils";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const rolColors: Record<string, string> = {
   Administrador: "bg-purple-50 text-purple-600",
-  "Gerente de Campo": "bg-[var(--secondary)] text-[var(--primary)]",
+  "Gerente de Campo": "bg-secondary text-primary",
   Supervisor: "bg-teal-50 text-teal-600",
   Operador: "bg-blue-50 text-blue-600",
   Analista: "bg-amber-50 text-amber-600",
@@ -48,19 +48,19 @@ const rolColors: Record<string, string> = {
 };
 
 const estadoUsuario: Record<string, { badge: string; dot: string }> = {
-  Activo: { badge: "bg-[var(--secondary)] text-[var(--primary)] border-0", dot: "bg-[var(--primary)]" },
+  Activo: { badge: "bg-secondary text-primary border-0", dot: "bg-primary" },
   Inactivo: { badge: "bg-gray-100 text-gray-500 border-0", dot: "bg-gray-400" },
   Suspendido: { badge: "bg-red-50 text-red-500 border-0", dot: "bg-red-500" },
 };
 
 const planColor: Record<string, string> = {
   Starter: "bg-gray-100 text-gray-600 border-0",
-  Pro: "bg-[var(--secondary)] text-[var(--primary)] border-0",
+  Pro: "bg-secondary text-primary border-0",
   Enterprise: "bg-purple-100 text-purple-600 border-0",
 };
 
 const estadoEmpresa: Record<string, { badge: string; dot: string }> = {
-  Activa: { badge: "bg-[var(--secondary)] text-[var(--primary)] border-0", dot: "bg-[var(--primary)]" },
+  Activa: { badge: "bg-secondary text-primary border-0", dot: "bg-primary" },
   Inactiva: { badge: "bg-gray-100 text-gray-500 border-0", dot: "bg-gray-400" },
   Suspendida: { badge: "bg-red-50 text-red-500 border-0", dot: "bg-red-500" },
 };
@@ -209,14 +209,14 @@ export default function UsuariosPage() {
       {/* ─── KPI Row ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: "Total Usuarios", value: usuarioDB.records.length, sub: "registrados", icon: <Users size={16} className="text-[var(--primary)]" /> },
-          { label: "Activos Hoy", value: activeUsers, sub: "sesiones activas", icon: <Shield size={16} className="text-[var(--primary)]" /> },
-          { label: "Empresas", value: empresaDB.records.length, sub: `${activeEmpresas} activas`, icon: <Building2 size={16} className="text-[var(--primary)]" /> },
+          { label: "Total Usuarios", value: usuarioDB.records.length, sub: "registrados", icon: <Users size={16} className="text-primary" /> },
+          { label: "Activos Hoy", value: activeUsers, sub: "sesiones activas", icon: <Shield size={16} className="text-primary" /> },
+          { label: "Empresas", value: empresaDB.records.length, sub: `${activeEmpresas} activas`, icon: <Building2 size={16} className="text-primary" /> },
           { label: "Roles Distintos", value: [...new Set(usuarioDB.records.map((u) => u.rol))].length, sub: "tipos de acceso" },
         ].map((s) => (
-          <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4 flex items-start gap-3">
+          <div key={s.label} className="bg-card rounded-xl border border-border p-4 flex items-start gap-3">
             {s.icon && (
-              <div className="w-9 h-9 rounded-lg bg-[var(--secondary)] flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center shrink-0">
                 {s.icon}
               </div>
             )}
@@ -230,9 +230,9 @@ export default function UsuariosPage() {
       </div>
 
       {/* ─── Main card ────────────────────────────────────────────────────────── */}
-      <div className="bg-card rounded-xl border border-[var(--border)]">
+      <div className="bg-card rounded-xl border border-border">
         {/* Tabs + toolbar */}
-        <div className="flex items-center gap-0 border-b border-[var(--border)] px-4 pt-3">
+        <div className="flex items-center gap-0 border-b border-border px-4 pt-3">
           {(["usuarios", "empresas"] as TabKey[]).map((t) => (
             <button
               key={t}
@@ -240,7 +240,7 @@ export default function UsuariosPage() {
               className={cn(
                 "px-5 py-2.5 text-xs font-body border-b-2 transition-all capitalize",
                 tab === t
-                  ? "border-[var(--primary)] text-[var(--primary)] font-medium-body"
+                  ? "border-primary text-primary font-medium-body"
                   : "border-transparent text-[#6B7280] hover:text-[#1E1E1E]"
               )}
             >
@@ -250,9 +250,9 @@ export default function UsuariosPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 p-4 border-b border-[var(--border)]">
+        <div className="flex flex-wrap items-center gap-2 p-4 border-b border-border">
           {/* Search */}
-          <div className="flex items-center gap-2 bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] flex-1 min-w-[200px] max-w-xs focus-within:border-[var(--primary)] transition-colors">
+          <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border border-border flex-1 min-w-[200px] max-w-xs focus-within:border-primary transition-colors">
             <Search size={13} className="text-[#9CA3AF] shrink-0" />
             <input
               type="text"
@@ -273,14 +273,14 @@ export default function UsuariosPage() {
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-body transition-all",
                 showFilters
-                  ? "border-[var(--primary)] text-[var(--primary)] bg-[var(--secondary)]"
-                  : "border-[var(--border)] text-[#6B7280] hover:border-[var(--primary)]/40"
+                  ? "border-primary text-primary bg-secondary"
+                  : "border-border text-[#6B7280] hover:border-primary/40"
               )}
             >
               <Filter size={13} />
               Filtros
               {(filterRol || filterEmpresaId || filterEstado) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
               )}
             </button>
           )}
@@ -289,7 +289,7 @@ export default function UsuariosPage() {
           <button
             onClick={() => { empresaDB.reset(); usuarioDB.reset(); showToast("Datos de demostración restaurados."); }}
             title="Restaurar datos de demo"
-            className="p-2 rounded-lg border border-[var(--border)] text-[#9CA3AF] hover:text-[var(--primary)] hover:border-[var(--primary)]/40 transition-all"
+            className="p-2 rounded-lg border border-border text-[#9CA3AF] hover:text-primary hover:border-primary/40 transition-all"
           >
             <RefreshCw size={13} />
           </button>
@@ -300,7 +300,7 @@ export default function UsuariosPage() {
               if (tab === "usuarios") { setEditingUsuario(null); setUsuarioFormOpen(true); }
               else { setEditingEmpresa(null); setEmpresaFormOpen(true); }
             }}
-            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors"
+            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-xs font-medium-body hover:bg-primary-dark transition-colors"
           >
             <Plus size={13} />
             {tab === "usuarios" ? "Nuevo Usuario" : "Nueva Empresa"}
@@ -309,11 +309,11 @@ export default function UsuariosPage() {
 
         {/* Filters row (usuarios only) */}
         {tab === "usuarios" && showFilters && (
-          <div className="flex flex-wrap gap-2 px-4 py-3 bg-[var(--background)] border-b border-[var(--border)]">
+          <div className="flex flex-wrap gap-2 px-4 py-3 bg-background border-b border-border">
             <select
               value={filterRol}
               onChange={(e) => setFilterRol(e.target.value)}
-              className="h-8 px-2 text-xs font-body rounded-lg border border-[var(--border)] bg-card outline-none focus:border-[var(--primary)] transition-colors"
+              className="h-8 px-2 text-xs font-body rounded-lg border border-border bg-card outline-none focus:border-primary transition-colors"
             >
               <option value="">Todos los roles</option>
               {["Administrador", "Gerente de Campo", "Supervisor", "Operador", "Analista", "Jornalero"].map((r) => (
@@ -323,7 +323,7 @@ export default function UsuariosPage() {
             <select
               value={filterEmpresaId}
               onChange={(e) => setFilterEmpresaId(e.target.value)}
-              className="h-8 px-2 text-xs font-body rounded-lg border border-[var(--border)] bg-card outline-none focus:border-[var(--primary)] transition-colors"
+              className="h-8 px-2 text-xs font-body rounded-lg border border-border bg-card outline-none focus:border-primary transition-colors"
             >
               <option value="">Todas las empresas</option>
               {empresaDB.records.map((e) => (
@@ -333,7 +333,7 @@ export default function UsuariosPage() {
             <select
               value={filterEstado}
               onChange={(e) => setFilterEstado(e.target.value)}
-              className="h-8 px-2 text-xs font-body rounded-lg border border-[var(--border)] bg-card outline-none focus:border-[var(--primary)] transition-colors"
+              className="h-8 px-2 text-xs font-body rounded-lg border border-border bg-card outline-none focus:border-primary transition-colors"
             >
               <option value="">Todos los estados</option>
               {["Activo", "Inactivo", "Suspendido"].map((s) => (
@@ -362,7 +362,7 @@ export default function UsuariosPage() {
                 action={
                   <button
                     onClick={() => { setEditingUsuario(null); setUsuarioFormOpen(true); }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-xs font-medium-body hover:bg-primary-dark transition-colors"
                   >
                     <Plus size={13} /> Crear primer usuario
                   </button>
@@ -371,7 +371,7 @@ export default function UsuariosPage() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[var(--border)]">
+                  <tr className="border-b border-border">
                     {["Usuario", "Empresa", "Rol", "Estado", "Último acceso", "Creado", ""].map((h) => (
                       <th key={h} className="text-left px-4 py-3 font-heading text-[10px] text-[#9CA3AF] uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
@@ -382,12 +382,12 @@ export default function UsuariosPage() {
                     const empresa = empresaDB.records.find((e) => e.id === u.empresaId);
                     const est = estadoUsuario[u.estado] ?? estadoUsuario.Inactivo;
                     return (
-                      <tr key={u.id} className="border-b border-[var(--secondary)] hover:bg-[var(--background)] transition-colors group">
+                      <tr key={u.id} className="border-b border-secondary hover:bg-background transition-colors group">
                         {/* Avatar + name */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <Avatar className="h-8 w-8 shrink-0">
-                              <AvatarFallback className="bg-[var(--primary)]/15 text-[var(--primary)] text-[10px] font-heading">
+                              <AvatarFallback className="bg-primary/15 text-primary text-[10px] font-heading">
                                 {u.nombre[0]}{u.apellido[0]}
                               </AvatarFallback>
                             </Avatar>
@@ -437,7 +437,7 @@ export default function UsuariosPage() {
                             <button
                               title="Editar"
                               onClick={() => { setEditingUsuario(u); setUsuarioFormOpen(true); }}
-                              className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors"
+                              className="p-1.5 rounded-md hover:bg-secondary text-[#9CA3AF] hover:text-primary transition-colors"
                             >
                               <Edit2 size={13} />
                             </button>
@@ -470,7 +470,7 @@ export default function UsuariosPage() {
                 action={
                   <button
                     onClick={() => { setEditingEmpresa(null); setEmpresaFormOpen(true); }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-xs font-medium-body hover:bg-primary-dark transition-colors"
                   >
                     <Plus size={13} /> Crear primera empresa
                   </button>
@@ -479,7 +479,7 @@ export default function UsuariosPage() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[var(--border)]">
+                  <tr className="border-b border-border">
                     {["Empresa", "NIT / RUC", "Contacto", "Ciudad", "Plan", "Usuarios", "Estado", "Registro", ""].map((h) => (
                       <th key={h} className="text-left px-4 py-3 font-heading text-[10px] text-[#9CA3AF] uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
@@ -490,12 +490,12 @@ export default function UsuariosPage() {
                     const usersCount = usuarioDB.records.filter((u) => u.empresaId === e.id).length;
                     const est = estadoEmpresa[e.estado] ?? estadoEmpresa.Inactiva;
                     return (
-                      <tr key={e.id} className="border-b border-[var(--secondary)] hover:bg-[var(--background)] transition-colors group">
+                      <tr key={e.id} className="border-b border-secondary hover:bg-background transition-colors group">
                         {/* Name */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
-                              <Building2 size={14} className="text-[var(--primary)]" />
+                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <Building2 size={14} className="text-primary" />
                             </div>
                             <div>
                               <p className="font-medium-body text-xs text-[#1E1E1E]">{e.nombre}</p>
@@ -527,14 +527,14 @@ export default function UsuariosPage() {
                             <button
                               title="Ver detalle"
                               onClick={() => setViewingEmpresa(e)}
-                              className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors"
+                              className="p-1.5 rounded-md hover:bg-secondary text-[#9CA3AF] hover:text-primary transition-colors"
                             >
                               <Eye size={13} />
                             </button>
                             <button
                               title="Editar"
                               onClick={() => { setEditingEmpresa(e); setEmpresaFormOpen(true); }}
-                              className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors"
+                              className="p-1.5 rounded-md hover:bg-secondary text-[#9CA3AF] hover:text-primary transition-colors"
                             >
                               <Edit2 size={13} />
                             </button>
@@ -557,7 +557,7 @@ export default function UsuariosPage() {
         )}
 
         {/* Results count footer */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <p className="font-body text-xs text-[#9CA3AF]">
             {tab === "usuarios"
               ? `${filteredUsuarios.length} de ${usuarioDB.records.length} usuarios`
@@ -621,3 +621,4 @@ export default function UsuariosPage() {
     </AppShell>
   );
 }
+

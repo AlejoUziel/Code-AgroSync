@@ -15,13 +15,13 @@ const inventario = [
 ];
 
 const estadoConfig: Record<string, { badge: string; dot: string }> = {
-  "Disponible": { badge: "bg-[var(--secondary)] text-[var(--primary)] border-0", dot: "bg-[var(--primary)]" },
+  "Disponible": { badge: "bg-secondary text-primary border-0", dot: "bg-primary" },
   "Stock Bajo": { badge: "bg-amber-50 text-amber-600 border-0", dot: "bg-amber-500" },
   "Agotado": { badge: "bg-red-50 text-red-500 border-0", dot: "bg-red-500" },
 };
 
 const categoriaColor: Record<string, string> = {
-  "Fertilizante": "bg-[var(--accent)]/20 text-[var(--primary-dark)]",
+  "Fertilizante": "bg-accent/20 text-[var(--primary-dark)]",
   "Agroquímico": "bg-orange-100 text-orange-600",
   "Semilla": "bg-emerald-100 text-emerald-600",
   "Combustible": "bg-gray-100 text-gray-600",
@@ -39,7 +39,7 @@ export default function InventarioPage() {
             { label: "Agotados", value: "3", sub: "sin stock", alert: true },
             { label: "Valor Inventario", value: "$284K", sub: "valorización total" },
           ].map((s) => (
-            <div key={s.label} className={`bg-card rounded-xl border p-4 ${s.alert ? "border-amber-200" : "border-[var(--border)]"}`}>
+            <div key={s.label} className={`bg-card rounded-xl border p-4 ${s.alert ? "border-amber-200" : "border-border"}`}>
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className={`font-heading text-2xl mt-1 ${s.alert ? "text-amber-500" : "text-[#1E1E1E]"}`}>{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -59,16 +59,16 @@ export default function InventarioPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-card rounded-xl border border-[var(--border)]">
-          <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
-            <div className="flex items-center gap-2 bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] flex-1 max-w-xs focus-within:border-[var(--primary)] transition-colors">
+        <div className="bg-card rounded-xl border border-border">
+          <div className="flex items-center gap-3 p-4 border-b border-border">
+            <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border border-border flex-1 max-w-xs focus-within:border-primary transition-colors">
               <Search size={13} className="text-[#9CA3AF]" />
               <input type="text" placeholder="Buscar insumo..." className="bg-transparent text-xs font-body text-[#1E1E1E] placeholder:text-[#9CA3AF] outline-none w-full" />
             </div>
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 transition-all">
+            <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-xs font-body text-[#6B7280] hover:border-primary/40 transition-all">
               <Filter size={13} /> Filtrar
             </button>
-            <button className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors">
+            <button className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-xs font-medium-body hover:bg-primary-dark transition-colors">
               <Plus size={13} /> Agregar Ítem
             </button>
           </div>
@@ -76,7 +76,7 @@ export default function InventarioPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[var(--border)]">
+                <tr className="border-b border-border">
                   {["ID", "Nombre", "Categoría", "Stock", "Stock Mínimo", "Nivel", "Ubicación", "Estado", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 font-heading text-[10px] text-[#9CA3AF] uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
@@ -86,12 +86,12 @@ export default function InventarioPage() {
                 {inventario.map((item) => {
                   const pct = item.minimo > 0 ? Math.min(100, Math.round((item.stock / (item.minimo * 3)) * 100)) : 0;
                   return (
-                    <tr key={item.id} className="border-b border-[var(--secondary)] hover:bg-[var(--background)] transition-colors group">
+                    <tr key={item.id} className="border-b border-secondary hover:bg-background transition-colors group">
                       <td className="px-4 py-3 font-body text-[11px] text-[#9CA3AF]">{item.id}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-md bg-[var(--primary)]/10 flex items-center justify-center">
-                            <WarehouseIcon size={11} className="text-[var(--primary)]" />
+                          <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+                            <WarehouseIcon size={11} className="text-primary" />
                           </div>
                           <span className="font-medium-body text-xs text-[#1E1E1E]">{item.nombre}</span>
                         </div>
@@ -104,7 +104,7 @@ export default function InventarioPage() {
                       <td className="px-4 py-3 w-28">
                         <Progress
                           value={pct}
-                          className={`h-1.5 bg-[var(--border)] ${item.estado === "Agotado" ? "[&>div]:bg-red-500" : item.estado === "Stock Bajo" ? "[&>div]:bg-amber-500" : "[&>div]:bg-[var(--primary)]"}`}
+                          className={`h-1.5 bg-card ${item.estado === "Agotado" ? "[&>div]:bg-red-500" : item.estado === "Stock Bajo" ? "[&>div]:bg-amber-500" : "[&>div]:bg-primary"}`}
                         />
                       </td>
                       <td className="px-4 py-3 font-body text-xs text-[#6B7280]">{item.ubicacion}</td>
@@ -115,7 +115,7 @@ export default function InventarioPage() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF]">
+                        <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-secondary text-[#9CA3AF]">
                           <MoreHorizontal size={14} />
                         </button>
                       </td>
@@ -125,7 +125,7 @@ export default function InventarioPage() {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
             <p className="font-body text-xs text-[#9CA3AF]">Mostrando 6 de 342 ítems</p>
           </div>
         </div>
@@ -133,3 +133,4 @@ export default function InventarioPage() {
     </AppShell>
   );
 }
+

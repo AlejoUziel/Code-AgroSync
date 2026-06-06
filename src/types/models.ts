@@ -189,3 +189,4 @@ export const seedUsuarios: Usuario[] = [
     notas: "",
   },
 ];
+

@@ -25,7 +25,7 @@ const cosechas = [
 ];
 
 const estadoConfig: Record<string, string> = {
-  "Completada": "bg-[var(--secondary)] text-[var(--primary)] border-0",
+  "Completada": "bg-secondary text-primary border-0",
   "En Proceso": "bg-blue-50 text-blue-600 border-0",
   "Programada": "bg-amber-50 text-amber-600 border-0",
 };
@@ -42,7 +42,7 @@ export default function ProduccionPage() {
             { label: "Rendimiento Prom.", value: "6.8 t/ha", sub: "vs 6.2 t/ha año ant." },
             { label: "Próx. Cosecha", value: "Jun 10", sub: "Frijol Negro FB-80" },
           ].map((s) => (
-            <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4">
+            <div key={s.label} className="bg-card rounded-xl border border-border p-4">
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className="font-heading text-2xl text-[#1E1E1E] mt-1">{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -52,13 +52,13 @@ export default function ProduccionPage() {
 
         {/* Chart + meta */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 bg-card rounded-xl border border-[var(--border)] p-5">
+          <div className="lg:col-span-2 bg-card rounded-xl border border-border p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-heading text-sm text-[#1E1E1E]">Producción Mensual</h2>
                 <p className="font-body text-xs text-[#9CA3AF]">Toneladas cosechadas — 2026</p>
               </div>
-              <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 transition-all">
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-xs font-body text-[#6B7280] hover:border-primary/40 transition-all">
                 <Download size={12} /> Exportar
               </button>
             </div>
@@ -79,7 +79,7 @@ export default function ProduccionPage() {
             </div>
           </div>
 
-          <div className="bg-card rounded-xl border border-[var(--border)] p-5">
+          <div className="bg-card rounded-xl border border-border p-5">
             <h2 className="font-heading text-sm text-[#1E1E1E] mb-3">Meta Anual</h2>
             <div className="text-center py-4">
               <div className="relative inline-flex items-center justify-center mb-3">
@@ -95,7 +95,7 @@ export default function ProduccionPage() {
                 </div>
               </div>
               <p className="font-body text-xs text-[#9CA3AF]">3,842 t de 6,800 t meta</p>
-              <p className="font-body text-[11px] text-[var(--primary)] mt-1">+8.3% vs meta mensual</p>
+              <p className="font-body text-[11px] text-primary mt-1">+8.3% vs meta mensual</p>
             </div>
             <div className="space-y-2 mt-2">
               {[
@@ -108,7 +108,7 @@ export default function ProduccionPage() {
                     <span className="font-body text-xs text-[#6B7280]">{item.label}</span>
                     <span className="font-body text-xs text-[#9CA3AF]">{item.pct}%</span>
                   </div>
-                  <Progress value={item.pct} className="h-1.5 bg-[var(--border)]" />
+                  <Progress value={item.pct} className="h-1.5 bg-card" />
                 </div>
               ))}
             </div>
@@ -116,14 +116,14 @@ export default function ProduccionPage() {
         </div>
 
         {/* Harvest records */}
-        <div className="bg-card rounded-xl border border-[var(--border)]">
-          <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
+        <div className="bg-card rounded-xl border border-border">
+          <div className="flex items-center gap-3 p-4 border-b border-border">
             <h2 className="font-heading text-sm text-[#1E1E1E]">Registros de Cosecha</h2>
             <div className="ml-auto flex items-center gap-2">
-              <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 transition-all">
+              <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-xs font-body text-[#6B7280] hover:border-primary/40 transition-all">
                 <Filter size={13} /> Filtrar
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors">
+              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-xs font-medium-body hover:bg-primary-dark transition-colors">
                 <Plus size={13} /> Registrar Cosecha
               </button>
             </div>
@@ -131,7 +131,7 @@ export default function ProduccionPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[var(--border)]">
+                <tr className="border-b border-border">
                   {["ID", "Lote / Cultivo", "Fecha", "Cantidad", "Empleados", "Rendimiento", "Calidad", "Estado", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 font-heading text-[10px] text-[#9CA3AF] uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
@@ -139,12 +139,12 @@ export default function ProduccionPage() {
               </thead>
               <tbody>
                 {cosechas.map((c) => (
-                  <tr key={c.id} className="border-b border-[var(--secondary)] hover:bg-[var(--background)] transition-colors group">
+                  <tr key={c.id} className="border-b border-secondary hover:bg-background transition-colors group">
                     <td className="px-4 py-3 font-body text-[11px] text-[#9CA3AF]">{c.id}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-[var(--primary)]/10 flex items-center justify-center">
-                          <Package size={11} className="text-[var(--primary)]" />
+                        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+                          <Package size={11} className="text-primary" />
                         </div>
                         <span className="font-medium-body text-xs text-[#1E1E1E]">{c.lote}</span>
                       </div>
@@ -155,14 +155,14 @@ export default function ProduccionPage() {
                     <td className="px-4 py-3 font-body text-xs text-[#6B7280]">{c.rendimiento}</td>
                     <td className="px-4 py-3">
                       {c.calidad !== "—" ? (
-                        <Badge className={`text-[10px] px-2 py-0.5 border-0 ${c.calidad === "Premium" ? "bg-purple-50 text-purple-600" : "bg-[var(--secondary)] text-[var(--primary)]"}`}>{c.calidad}</Badge>
+                        <Badge className={`text-[10px] px-2 py-0.5 border-0 ${c.calidad === "Premium" ? "bg-purple-50 text-purple-600" : "bg-secondary text-primary"}`}>{c.calidad}</Badge>
                       ) : <span className="text-[#C4C4C4] text-xs">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <Badge className={`text-[10px] px-2 py-0.5 ${estadoConfig[c.estado]}`}>{c.estado}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF]">
+                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-secondary text-[#9CA3AF]">
                         <MoreHorizontal size={14} />
                       </button>
                     </td>
@@ -176,3 +176,4 @@ export default function ProduccionPage() {
     </AppShell>
   );
 }
+

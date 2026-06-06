@@ -56,7 +56,7 @@ const defaultForm: Partial<Usuario> = {
   telefono: "",
   rol: undefined,
   empresaId: "",
-  estado: "Activo",
+  estado: undefined,
   notas: "",
 };
 
@@ -77,7 +77,7 @@ const estados: { value: EstadoUsuario; label: string }[] = [
 
 const rolColors: Record<RolUsuario, string> = {
   Administrador: "bg-purple-100 text-purple-600",
-  "Gerente de Campo": "bg-[var(--secondary)] text-[var(--primary)]",
+  "Gerente de Campo": "bg-secondary text-primary",
   Supervisor: "bg-teal-100 text-teal-600",
   Operador: "bg-blue-100 text-blue-600",
   Analista: "bg-amber-100 text-amber-600",
@@ -144,12 +144,12 @@ export default function UsuarioForm({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl border-[var(--border)] bg-card p-0 overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl border-border bg-card p-0 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <DialogHeader className="px-6 pt-5 pb-4 border-b border-[var(--border)] shrink-0">
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[var(--primary)]/12 flex items-center justify-center">
-              <User size={16} className="text-[var(--primary)]" />
+            <div className="w-9 h-9 rounded-lg bg-primary/12 flex items-center justify-center">
+              <User size={16} className="text-primary" />
             </div>
             <div>
               <DialogTitle className="font-heading text-base text-[#1E1E1E]">
@@ -242,8 +242,8 @@ export default function UsuarioForm({
 
             {/* Role description */}
             {selectedRol && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--background)] border border-[var(--border)]">
-                <Shield size={13} className="text-[var(--primary)] shrink-0" />
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border">
+                <Shield size={13} className="text-primary shrink-0" />
                 <div>
                   <span
                     className={`inline-block text-[10px] font-medium-body px-2 py-0.5 rounded-full mr-2 ${rolColors[selectedRol]}`}
@@ -259,9 +259,9 @@ export default function UsuarioForm({
 
             {/* Company preview */}
             {selectedEmpresa && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--background)] border border-[var(--border)]">
-                <div className="w-7 h-7 rounded-md bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
-                  <Building2 size={13} className="text-[var(--primary)]" />
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border">
+                <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                  <Building2 size={13} className="text-primary" />
                 </div>
                 <div>
                   <p className="font-medium-body text-xs text-[#1E1E1E]">
@@ -297,18 +297,18 @@ export default function UsuarioForm({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t border-[var(--border)] shrink-0 flex-row gap-2 justify-end bg-[var(--background)]">
+        <DialogFooter className="px-6 py-4 border-t border-border shrink-0 flex-row gap-2 justify-end bg-background">
           <button
             onClick={onClose}
             disabled={saving}
-            className="px-4 py-2 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 hover:text-[#1E1E1E] transition-all disabled:opacity-50"
+            className="px-4 py-2 rounded-lg border border-border text-xs font-body text-[#6B7280] hover:border-primary/40 hover:text-[#1E1E1E] transition-all disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-5 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-60 flex items-center gap-2 min-w-[120px] justify-center"
+            className="px-5 py-2 rounded-lg bg-primary text-white text-xs font-medium-body hover:bg-primary-dark transition-colors disabled:opacity-60 flex items-center gap-2 min-w-[120px] justify-center"
           >
             {saving ? (
               <>
@@ -324,3 +324,4 @@ export default function UsuarioForm({
     </Dialog>
   );
 }
+

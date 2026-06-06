@@ -16,7 +16,7 @@ const kpis = [
     unit: "parcelas",
     change: "+3 este mes",
     trend: "up" as const,
-    icon: <MapPin size={18} className="text-[var(--primary)]" />,
+    icon: <MapPin size={18} className="text-primary" />,
     color: "green" as const,
   },
   {
@@ -25,7 +25,7 @@ const kpis = [
     unit: "cultivos",
     change: "+12% vs año anterior",
     trend: "up" as const,
-    icon: <Sprout size={18} className="text-[var(--primary)]" />,
+    icon: <Sprout size={18} className="text-primary" />,
     color: "green" as const,
   },
   {
@@ -34,7 +34,7 @@ const kpis = [
     unit: "toneladas",
     change: "+8.3% vs meta",
     trend: "up" as const,
-    icon: <Package size={18} className="text-[var(--primary)]" />,
+    icon: <Package size={18} className="text-primary" />,
     color: "green" as const,
   },
   {
@@ -43,7 +43,7 @@ const kpis = [
     unit: "empleados",
     change: "12 en campo hoy",
     trend: "neutral" as const,
-    icon: <Users size={18} className="text-[var(--primary)]" />,
+    icon: <Users size={18} className="text-primary" />,
     color: "neutral" as const,
   },
 ];
@@ -88,3 +88,4 @@ export default function DashboardPage() {
     </AppShell>
   );
 }
+

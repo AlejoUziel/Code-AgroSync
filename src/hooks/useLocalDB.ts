@@ -100,3 +100,4 @@ export function useLocalDB<T extends { id: string }>(
 
   return { records, loading, getAll, getById, create, update, remove, reset };
 }
+

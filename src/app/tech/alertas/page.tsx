@@ -39,10 +39,10 @@ const tipoConfig = {
   },
   success: {
     icon: <CheckCircle2 size={16} />,
-    color: "text-[var(--primary)]",
-    bg: "bg-[var(--secondary)] border-[var(--border)]",
-    badge: "bg-[var(--secondary)] text-[var(--primary)] border-0",
-    dot: "bg-[var(--primary)]",
+    color: "text-primary",
+    bg: "bg-secondary border-border",
+    badge: "bg-secondary text-primary border-0",
+    dot: "bg-primary",
   },
 };
 
@@ -60,7 +60,7 @@ export default function AlertasPage() {
             { label: "Advertencias", value: "2", sub: "este día" },
             { label: "Total Hoy", value: `${alertas.length}`, sub: "notificaciones" },
           ].map((s) => (
-            <div key={s.label} className={`bg-card rounded-xl border p-4 ${s.alert && parseInt(s.value) > 0 ? "border-red-200" : "border-[var(--border)]"}`}>
+            <div key={s.label} className={`bg-card rounded-xl border p-4 ${s.alert && parseInt(s.value) > 0 ? "border-red-200" : "border-border"}`}>
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className={`font-heading text-2xl mt-1 ${s.alert && parseInt(s.value) > 0 ? "text-red-500" : "text-[#1E1E1E]"}`}>{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -69,15 +69,15 @@ export default function AlertasPage() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex items-center gap-1 bg-card rounded-xl border border-[var(--border)] p-1.5 w-fit">
+        <div className="flex items-center gap-1 bg-card rounded-xl border border-border p-1.5 w-fit">
           {["Todas", "No leídas", "Críticas", "Advertencias", "Info"].map((tab, i) => (
             <button
               key={tab}
               className={cn(
                 "px-4 py-1.5 rounded-lg text-xs font-body transition-all",
                 i === 0
-                  ? "bg-[var(--primary)] text-white font-medium-body"
-                  : "text-[#6B7280] hover:text-[#1E1E1E] hover:bg-[var(--background)]"
+                  ? "bg-primary text-white font-medium-body"
+                  : "text-[#6B7280] hover:text-[#1E1E1E] hover:bg-background"
               )}
             >
               {tab}
@@ -91,7 +91,7 @@ export default function AlertasPage() {
           <div className="flex items-center justify-between mb-3">
             <p className="font-body text-xs text-[#9CA3AF]">{alertas.length} notificaciones · {noLeidas} sin leer</p>
             <div className="flex items-center gap-2">
-              <button className="flex items-center gap-1.5 text-xs font-body text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors">
+              <button className="flex items-center gap-1.5 text-xs font-body text-primary hover:text-[var(--primary-dark)] transition-colors">
                 <Check size={12} /> Marcar todas como leídas
               </button>
               <button className="flex items-center gap-1.5 text-xs font-body text-[#9CA3AF] hover:text-red-500 transition-colors">
@@ -107,7 +107,7 @@ export default function AlertasPage() {
                 key={alerta.id}
                 className={cn(
                   "flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer hover:shadow-sm",
-                  alerta.leida ? "bg-card border-[var(--border)] opacity-70" : `${cfg.bg} border`
+                  alerta.leida ? "bg-card border-border opacity-70" : `${cfg.bg} border`
                 )}
               >
                 {/* Unread dot */}
@@ -158,9 +158,9 @@ export default function AlertasPage() {
         </div>
 
         {/* Notification settings */}
-        <div className="bg-card rounded-xl border border-[var(--border)] p-5">
+        <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Settings size={14} className="text-[var(--primary)]" />
+            <Settings size={14} className="text-primary" />
             <h2 className="font-heading text-sm text-[#1E1E1E]">Configuración de Alertas</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -172,10 +172,10 @@ export default function AlertasPage() {
               { label: "Cosechas Completadas", desc: "Al registrar cosecha", active: false },
               { label: "Reportes Automáticos", desc: "Al generar reporte programado", active: false },
             ].map((config) => (
-              <div key={config.label} className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors">
+              <div key={config.label} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/30 transition-colors">
                 <div className={cn(
                   "w-9 h-5 rounded-full relative cursor-pointer transition-colors flex items-center shrink-0",
-                  config.active ? "bg-[var(--primary)]" : "bg-[var(--border)]"
+                  config.active ? "bg-primary" : "bg-card"
                 )}>
                   <div className={cn(
                     "w-3.5 h-3.5 rounded-full bg-card shadow-sm absolute transition-transform",
@@ -194,3 +194,4 @@ export default function AlertasPage() {
     </AppShell>
   );
 }
+

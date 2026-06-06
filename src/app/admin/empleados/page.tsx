@@ -14,7 +14,7 @@ const empleados = [
 ];
 
 const estadoConfig: Record<string, string> = {
-  "En Campo": "bg-[var(--secondary)] text-[var(--primary)] border-0",
+  "En Campo": "bg-secondary text-primary border-0",
   "En Oficina": "bg-blue-50 text-blue-600 border-0",
   "Descanso": "bg-gray-100 text-gray-500 border-0",
   "Vacaciones": "bg-purple-50 text-purple-600 border-0",
@@ -32,7 +32,7 @@ export default function EmpleadosPage() {
             { label: "Contratos Temp.", value: "38", sub: "temporales" },
             { label: "Nómina Mensual", value: "$1.2M", sub: "total bruto" },
           ].map((s) => (
-            <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4">
+            <div key={s.label} className="bg-card rounded-xl border border-border p-4">
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className="font-heading text-2xl text-[#1E1E1E] mt-1">{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -43,10 +43,10 @@ export default function EmpleadosPage() {
         {/* Employee cards grid (top 3) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {empleados.slice(0, 3).map((e) => (
-            <div key={e.id} className="bg-card rounded-xl border border-[var(--border)] p-5 hover:border-[var(--primary)]/30 hover:shadow-sm transition-all cursor-pointer group">
+            <div key={e.id} className="bg-card rounded-xl border border-border p-5 hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer group">
               <div className="flex items-start justify-between mb-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-[var(--primary)]/15 text-[var(--primary)] text-sm font-heading">{e.avatar}</AvatarFallback>
+                  <AvatarFallback className="bg-primary/15 text-primary text-sm font-heading">{e.avatar}</AvatarFallback>
                 </Avatar>
                 <Badge className={`text-[10px] px-2 border-0 ${estadoConfig[e.estado]}`}>{e.estado}</Badge>
               </div>
@@ -68,23 +68,23 @@ export default function EmpleadosPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-card rounded-xl border border-[var(--border)]">
-          <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
-            <div className="flex items-center gap-2 bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] flex-1 max-w-xs focus-within:border-[var(--primary)] transition-colors">
+        <div className="bg-card rounded-xl border border-border">
+          <div className="flex items-center gap-3 p-4 border-b border-border">
+            <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border border-border flex-1 max-w-xs focus-within:border-primary transition-colors">
               <Search size={13} className="text-[#9CA3AF]" />
               <input type="text" placeholder="Buscar empleado..." className="bg-transparent text-xs font-body text-[#1E1E1E] placeholder:text-[#9CA3AF] outline-none w-full" />
             </div>
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 transition-all">
+            <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-xs font-body text-[#6B7280] hover:border-primary/40 transition-all">
               <Filter size={13} /> Filtrar
             </button>
-            <button className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors">
+            <button className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-xs font-medium-body hover:bg-primary-dark transition-colors">
               <Plus size={13} /> Nuevo Empleado
             </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[var(--border)]">
+                <tr className="border-b border-border">
                   {["Empleado", "Puesto", "Zona", "Contrato", "Salario", "Estado", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 font-heading text-[10px] text-[#9CA3AF] uppercase tracking-wider">{h}</th>
                   ))}
@@ -92,11 +92,11 @@ export default function EmpleadosPage() {
               </thead>
               <tbody>
                 {empleados.map((e) => (
-                  <tr key={e.id} className="border-b border-[var(--secondary)] hover:bg-[var(--background)] transition-colors group">
+                  <tr key={e.id} className="border-b border-secondary hover:bg-background transition-colors group">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <Avatar className="h-7 w-7">
-                          <AvatarFallback className="bg-[var(--primary)]/15 text-[var(--primary)] text-[10px] font-heading">{e.avatar}</AvatarFallback>
+                          <AvatarFallback className="bg-primary/15 text-primary text-[10px] font-heading">{e.avatar}</AvatarFallback>
                         </Avatar>
                         <span className="font-medium-body text-xs text-[#1E1E1E]">{e.nombre}</span>
                       </div>
@@ -104,14 +104,14 @@ export default function EmpleadosPage() {
                     <td className="px-4 py-3 font-body text-xs text-[#6B7280]">{e.puesto}</td>
                     <td className="px-4 py-3 font-body text-xs text-[#6B7280]">{e.zona}</td>
                     <td className="px-4 py-3">
-                      <Badge className={`text-[10px] px-2 border-0 ${e.contrato === "Permanente" ? "bg-[var(--secondary)] text-[var(--primary)]" : "bg-amber-50 text-amber-600"}`}>{e.contrato}</Badge>
+                      <Badge className={`text-[10px] px-2 border-0 ${e.contrato === "Permanente" ? "bg-secondary text-primary" : "bg-amber-50 text-amber-600"}`}>{e.contrato}</Badge>
                     </td>
                     <td className="px-4 py-3 font-medium-body text-xs text-[#1E1E1E]">{e.salario}</td>
                     <td className="px-4 py-3">
                       <Badge className={`text-[10px] px-2 py-0.5 ${estadoConfig[e.estado]}`}>{e.estado}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF]">
+                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-secondary text-[#9CA3AF]">
                         <MoreHorizontal size={14} />
                       </button>
                     </td>
@@ -125,3 +125,4 @@ export default function EmpleadosPage() {
     </AppShell>
   );
 }
+
