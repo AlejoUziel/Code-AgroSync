@@ -211,11 +211,44 @@ export interface Empleado {
 }
 
 export const seedEmpleados: Empleado[] = [
-  { id: "E-001", nombre: "Roberto Méndez", puesto: "Jefe de Campo", zona: "Zona Norte", salario: "$8,500", contrato: "Permanente", estado: "En Campo", rating: 5, avatar: "RM", tel: "+52 123 456 7890", email: "roberto@agrosync.com" },
-  { id: "E-002", nombre: "Sofía Torres", puesto: "Agrónoma", zona: "Zona Sur", salario: "$12,000", contrato: "Permanente", estado: "En Oficina", rating: 5, avatar: "ST", tel: "+52 123 456 7891", email: "sofia@agrosync.com" },
-  { id: "E-003", nombre: "Luis Herrera", puesto: "Operador Maquinaria", zona: "Zona Este", salario: "$6,200", contrato: "Temporal", estado: "En Campo", rating: 4, avatar: "LH", tel: "+52 123 456 7892", email: "luis@agrosync.com" },
-  { id: "E-004", nombre: "Carmen Vega", puesto: "Supervisora Cosecha", zona: "Zona Norte", salario: "$9,800", contrato: "Permanente", estado: "En Campo", rating: 5, avatar: "CV", tel: "+52 123 456 7893", email: "carmen@agrosync.com" },
-  { id: "E-005", nombre: "Miguel Ángel Ruiz", puesto: "Jornalero", zona: "Zona Oeste", salario: "$3,200", contrato: "Temporal", estado: "Descanso", rating: 3, avatar: "MR", tel: "+52 123 456 7894", email: "miguel@agrosync.com" },
+  { id: "E-001", nombre: "Roberto Méndez", puesto: "Jefe de Campo", zona: "Zona Norte", salario: "L. 18,500", contrato: "Permanente", estado: "En Campo", rating: 5, avatar: "RM", tel: "+52 123 456 7890", email: "roberto@agrosync.com" },
+  { id: "E-002", nombre: "Sofía Torres", puesto: "Agrónoma", zona: "Zona Sur", salario: "L. 28,000", contrato: "Permanente", estado: "En Oficina", rating: 5, avatar: "ST", tel: "+52 123 456 7891", email: "sofia@agrosync.com" },
+  { id: "E-003", nombre: "Luis Herrera", puesto: "Operador Maquinaria", zona: "Zona Este", salario: "L. 12,200", contrato: "Temporal", estado: "En Campo", rating: 4, avatar: "LH", tel: "+52 123 456 7892", email: "luis@agrosync.com" },
+  { id: "E-004", nombre: "Carmen Vega", puesto: "Supervisora Cosecha", zona: "Zona Norte", salario: "L. 22,800", contrato: "Permanente", estado: "En Campo", rating: 5, avatar: "CV", tel: "+52 123 456 7893", email: "carmen@agrosync.com" },
+  { id: "E-005", nombre: "Miguel Ángel Ruiz", puesto: "Jornalero", zona: "Zona Oeste", salario: "L. 7,800", contrato: "Temporal", estado: "Descanso", rating: 3, avatar: "MR", tel: "+52 123 456 7894", email: "miguel@agrosync.com" },
 ];
+
+// ─── Finanzas ─────────────────────────────────────────────────────────────────
+export interface Transaccion {
+  id: string;
+  concepto: string;
+  tipo: "Ingreso" | "Egreso";
+  monto: number;
+  fecha: string; // YYYY-MM-DD
+  categoria: string;
+}
+
+export const seedTransacciones: Transaccion[] = [
+  { id: "T-001", concepto: "Venta Cosecha Maíz — Lote Norte-08", tipo: "Ingreso", monto: 128400, fecha: "2026-06-02", categoria: "Venta" },
+  { id: "T-002", concepto: "Fertilizante NPK — Proveedor AgriMex", tipo: "Egreso", monto: 24800, fecha: "2026-06-01", categoria: "Insumos" },
+  { id: "T-003", concepto: "Nómina Mayo 2026", tipo: "Egreso", monto: 198000, fecha: "2026-05-31", categoria: "Nómina" },
+  { id: "T-004", concepto: "Venta Sorgo — Exportación", tipo: "Ingreso", monto: 84200, fecha: "2026-05-28", categoria: "Venta" },
+  { id: "T-005", concepto: "Combustible y Maquinaria", tipo: "Egreso", monto: 18600, fecha: "2026-05-27", categoria: "Operación" },
+  { id: "T-006", concepto: "Venta Maíz — Lote Sur-03", tipo: "Ingreso", monto: 92100, fecha: "2026-05-15", categoria: "Venta" },
+  { id: "T-007", concepto: "Servicio Técnico Riego", tipo: "Egreso", monto: 8500, fecha: "2026-05-10", categoria: "Operación" },
+  { id: "T-008", concepto: "Venta Frijol — Lote Este-04", tipo: "Ingreso", monto: 115000, fecha: "2026-04-18", categoria: "Venta" },
+  { id: "T-009", concepto: "Compra Semillas Maíz", tipo: "Egreso", monto: 45000, fecha: "2026-04-12", categoria: "Insumos" },
+  { id: "T-010", concepto: "Nómina Abril 2026", tipo: "Egreso", monto: 195000, fecha: "2026-04-30", categoria: "Nómina" },
+  { id: "T-011", concepto: "Venta Maíz — Lote Norte-12", tipo: "Ingreso", monto: 104000, fecha: "2026-03-22", categoria: "Venta" },
+  { id: "T-012", concepto: "Seguro Agrícola Anual", tipo: "Egreso", monto: 60000, fecha: "2026-03-10", categoria: "Administrativos" },
+  { id: "T-013", concepto: "Nómina Marzo 2026", tipo: "Egreso", monto: 195000, fecha: "2026-03-31", categoria: "Nómina" },
+  { id: "T-014", concepto: "Venta Sorgo — Mercado Nacional", tipo: "Ingreso", monto: 76000, fecha: "2026-02-18", categoria: "Venta" },
+  { id: "T-015", concepto: "Repuestos Tractor John Deere", tipo: "Egreso", monto: 35000, fecha: "2026-02-05", categoria: "Operación" },
+  { id: "T-016", concepto: "Nómina Febrero 2026", tipo: "Egreso", monto: 190000, fecha: "2026-02-28", categoria: "Nómina" },
+  { id: "T-017", concepto: "Venta Maíz — Cosecha Temprana", tipo: "Ingreso", monto: 142000, fecha: "2026-01-20", categoria: "Venta" },
+  { id: "T-018", concepto: "Herbicidas y Plaguicidas", tipo: "Egreso", monto: 28000, fecha: "2026-01-12", categoria: "Insumos" },
+  { id: "T-019", concepto: "Nómina Enero 2026", tipo: "Egreso", monto: 190000, fecha: "2026-01-31", categoria: "Nómina" },
+];
+
 
 

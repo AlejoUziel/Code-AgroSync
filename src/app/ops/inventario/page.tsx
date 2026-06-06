@@ -37,7 +37,7 @@ export default function InventarioPage() {
             { label: "Total Ítems", value: "342", sub: "registrados" },
             { label: "Stock Bajo", value: "12", sub: "requieren reposición", alert: true },
             { label: "Agotados", value: "3", sub: "sin stock", alert: true },
-            { label: "Valor Inventario", value: "$284K", sub: "valorización total" },
+            { label: "Valor Inventario", value: "L. 284K", sub: "valorización total" },
           ].map((s) => (
             <div key={s.label} className={`bg-card rounded-xl border p-4 ${s.alert ? "border-amber-200" : "border-border"}`}>
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>

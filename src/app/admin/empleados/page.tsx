@@ -101,9 +101,9 @@ export default function EmpleadosPage() {
 
   let payrollStr = "";
   if (totalPayroll >= 1000000) {
-    payrollStr = `$${(totalPayroll / 1000000).toFixed(1)}M`;
+    payrollStr = `L. ${(totalPayroll / 1000000).toFixed(1)}M`;
   } else {
-    payrollStr = `$${totalPayroll.toLocaleString("en-US")}`;
+    payrollStr = `L. ${totalPayroll.toLocaleString("en-US")}`;
   }
 
   return (
