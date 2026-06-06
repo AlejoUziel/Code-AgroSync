@@ -190,3 +190,32 @@ export const seedUsuarios: Usuario[] = [
   },
 ];
 
+// ─── Empleado ─────────────────────────────────────────────────────────────────
+export type EstadoEmpleado = "En Campo" | "En Oficina" | "Descanso" | "Vacaciones";
+export type ContratoEmpleado = "Permanente" | "Temporal";
+
+export interface Empleado {
+  id: string;
+  nombre: string;
+  puesto: string;
+  zona: string;
+  salario: string;
+  contrato: ContratoEmpleado;
+  estado: EstadoEmpleado;
+  rating: number;
+  avatar: string;
+  tel: string;
+  email: string;
+  fechaIngreso?: string;
+  notas?: string;
+}
+
+export const seedEmpleados: Empleado[] = [
+  { id: "E-001", nombre: "Roberto Méndez", puesto: "Jefe de Campo", zona: "Zona Norte", salario: "$8,500", contrato: "Permanente", estado: "En Campo", rating: 5, avatar: "RM", tel: "+52 123 456 7890", email: "roberto@agrosync.com" },
+  { id: "E-002", nombre: "Sofía Torres", puesto: "Agrónoma", zona: "Zona Sur", salario: "$12,000", contrato: "Permanente", estado: "En Oficina", rating: 5, avatar: "ST", tel: "+52 123 456 7891", email: "sofia@agrosync.com" },
+  { id: "E-003", nombre: "Luis Herrera", puesto: "Operador Maquinaria", zona: "Zona Este", salario: "$6,200", contrato: "Temporal", estado: "En Campo", rating: 4, avatar: "LH", tel: "+52 123 456 7892", email: "luis@agrosync.com" },
+  { id: "E-004", nombre: "Carmen Vega", puesto: "Supervisora Cosecha", zona: "Zona Norte", salario: "$9,800", contrato: "Permanente", estado: "En Campo", rating: 5, avatar: "CV", tel: "+52 123 456 7893", email: "carmen@agrosync.com" },
+  { id: "E-005", nombre: "Miguel Ángel Ruiz", puesto: "Jornalero", zona: "Zona Oeste", salario: "$3,200", contrato: "Temporal", estado: "Descanso", rating: 3, avatar: "MR", tel: "+52 123 456 7894", email: "miguel@agrosync.com" },
+];
+
+
