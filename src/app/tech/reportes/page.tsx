@@ -13,7 +13,7 @@ const reportes = [
 ];
 
 const reportesTipo: Record<string, string> = {
-  "Producción": "bg-[#F0F5EA] text-[#8EBF24]",
+  "Producción": "bg-[var(--secondary)] text-[var(--primary)]",
   "Inventario": "bg-blue-50 text-blue-600",
   "Finanzas": "bg-purple-50 text-purple-600",
   "Rendimiento": "bg-amber-50 text-amber-600",
@@ -41,7 +41,7 @@ export default function ReportesPage() {
             { label: "Descargados", value: "87", sub: "en 30 días" },
             { label: "Automáticos", value: "12", sub: "programados" },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-[#E2EDD6] p-4">
+            <div key={s.label} className="bg-white rounded-xl border border-[var(--border)] p-4">
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className="font-heading text-2xl text-[#1E1E1E] mt-1">{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -50,10 +50,10 @@ export default function ReportesPage() {
         </div>
 
         {/* Templates */}
-        <div className="bg-white rounded-xl border border-[#E2EDD6] p-5">
+        <div className="bg-white rounded-xl border border-[var(--border)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-heading text-sm text-[#1E1E1E]">Plantillas de Reportes</h2>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8EBF24] text-white text-xs font-medium-body hover:bg-[#6E9A1A] transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors">
               <Plus size={13} /> Nuevo Reporte
             </button>
           </div>
@@ -61,11 +61,11 @@ export default function ReportesPage() {
             {templates.map((t) => (
               <button
                 key={t.titulo}
-                className="flex items-start gap-3 p-3.5 rounded-xl border border-[#E2EDD6] hover:border-[#8EBF24]/40 hover:bg-[#F9FBF6] transition-all text-left group"
+                className="flex items-start gap-3 p-3.5 rounded-xl border border-[var(--border)] hover:border-[var(--primary)]/40 hover:bg-[var(--background)] transition-all text-left group"
               >
                 <span className="text-xl">{t.icon}</span>
                 <div>
-                  <p className="font-medium-body text-xs text-[#1E1E1E] group-hover:text-[#8EBF24] transition-colors">{t.titulo}</p>
+                  <p className="font-medium-body text-xs text-[#1E1E1E] group-hover:text-[var(--primary)] transition-colors">{t.titulo}</p>
                   <p className="font-body text-[11px] text-[#9CA3AF] mt-0.5">{t.desc}</p>
                 </div>
               </button>
@@ -74,17 +74,17 @@ export default function ReportesPage() {
         </div>
 
         {/* Recent reports */}
-        <div className="bg-white rounded-xl border border-[#E2EDD6]">
-          <div className="flex items-center gap-3 p-4 border-b border-[#E2EDD6]">
+        <div className="bg-white rounded-xl border border-[var(--border)]">
+          <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
             <h2 className="font-heading text-sm text-[#1E1E1E]">Reportes Recientes</h2>
-            <button className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E2EDD6] text-xs font-body text-[#6B7280] hover:border-[#8EBF24]/40 transition-all">
+            <button className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 transition-all">
               <Filter size={12} /> Filtrar
             </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#E2EDD6]">
+                <tr className="border-b border-[var(--border)]">
                   {["ID", "Título", "Tipo", "Generado", "Tamaño", "Formato", "Estado", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 font-heading text-[10px] text-[#9CA3AF] uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
@@ -92,11 +92,11 @@ export default function ReportesPage() {
               </thead>
               <tbody>
                 {reportes.map((r) => (
-                  <tr key={r.id} className="border-b border-[#F0F5EA] hover:bg-[#F9FBF6] transition-colors group">
+                  <tr key={r.id} className="border-b border-[var(--secondary)] hover:bg-[var(--background)] transition-colors group">
                     <td className="px-4 py-3 font-body text-[11px] text-[#9CA3AF]">{r.id}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <FileBarChart2 size={13} className="text-[#8EBF24] shrink-0" />
+                        <FileBarChart2 size={13} className="text-[var(--primary)] shrink-0" />
                         <span className="font-medium-body text-xs text-[#1E1E1E]">{r.titulo}</span>
                       </div>
                     </td>
@@ -111,14 +111,14 @@ export default function ReportesPage() {
                       <Badge className="text-[10px] px-2 border-0 bg-gray-100 text-gray-600">{r.formato}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={`text-[10px] px-2 border-0 ${r.estado === "Listo" ? "bg-[#F0F5EA] text-[#8EBF24]" : "bg-blue-50 text-blue-600"}`}>{r.estado}</Badge>
+                      <Badge className={`text-[10px] px-2 border-0 ${r.estado === "Listo" ? "bg-[var(--secondary)] text-[var(--primary)]" : "bg-blue-50 text-blue-600"}`}>{r.estado}</Badge>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 rounded-md hover:bg-[#F0F5EA] text-[#9CA3AF] hover:text-[#8EBF24] transition-colors" title="Ver">
+                        <button className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors" title="Ver">
                           <Eye size={13} />
                         </button>
-                        <button className="p-1.5 rounded-md hover:bg-[#F0F5EA] text-[#9CA3AF] hover:text-[#8EBF24] transition-colors" title="Descargar">
+                        <button className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors" title="Descargar">
                           <Download size={13} />
                         </button>
                       </div>

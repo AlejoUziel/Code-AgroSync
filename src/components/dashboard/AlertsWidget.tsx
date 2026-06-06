@@ -56,15 +56,15 @@ const alertConfig = {
   },
   success: {
     icon: <CheckCircle2 size={13} />,
-    color: "text-[#8EBF24]",
-    bg: "bg-[#F0F5EA]",
-    dot: "bg-[#8EBF24]",
+    color: "text-[var(--primary)]",
+    bg: "bg-[var(--secondary)]",
+    dot: "bg-[var(--primary)]",
   },
 };
 
 export default function AlertsWidget() {
   return (
-    <div className="bg-white rounded-xl border border-[#E2EDD6] p-4 flex flex-col">
+    <div className="bg-white rounded-xl border border-[var(--border)] p-4 flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-heading text-sm text-[#1E1E1E]">Alertas Recientes</h2>
         <Badge className="bg-red-100 text-red-500 border-0 text-[10px] px-1.5 py-0 h-4">
@@ -100,7 +100,7 @@ export default function AlertsWidget() {
         })}
       </div>
 
-      <button className="mt-3 flex items-center gap-1 text-xs font-body text-[#8EBF24] hover:text-[#6E9A1A] transition-colors">
+      <button className="mt-3 flex items-center gap-1 text-xs font-body text-[var(--primary)] hover:text-[var(--primary-dark)] transition-colors">
         Ver todas las alertas <ArrowRight size={12} />
       </button>
     </div>

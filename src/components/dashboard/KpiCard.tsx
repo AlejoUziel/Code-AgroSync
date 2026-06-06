@@ -27,15 +27,15 @@ export default function KpiCard({
 
   const trendColor =
     trend === "up"
-      ? "text-[#8EBF24]"
+      ? "text-[var(--primary)]"
       : trend === "down"
       ? "text-red-500"
       : "text-[#9CA3AF]";
 
   return (
-    <div className="bg-white rounded-xl border border-[#E2EDD6] p-5 card-hover group cursor-default transition-all duration-200 hover:border-[#8EBF24]/30 hover:shadow-sm">
+    <div className="bg-white rounded-xl border border-[var(--border)] p-5 card-hover group cursor-default transition-all duration-200 hover:border-[var(--primary)]/30 hover:shadow-sm">
       <div className="flex items-start justify-between mb-4">
-        <div className="w-9 h-9 rounded-lg bg-[#F0F5EA] flex items-center justify-center group-hover:bg-[#8EBF24]/10 transition-colors">
+        <div className="w-9 h-9 rounded-lg bg-[var(--secondary)] flex items-center justify-center group-hover:bg-[var(--primary)]/10 transition-colors">
           {icon}
         </div>
         <div className={cn("flex items-center gap-1 text-xs font-body", trendColor)}>

@@ -47,7 +47,7 @@ export default function LocalDBProvider({ children }: LocalDBProviderProps) {
   // Prevent SSR flash by showing nothing until client-side is ready
   if (!ready) {
     return (
-      <div className="min-h-screen bg-[#F9FBF6] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           {/* Animated AgroSync logo */}
           <div className="relative">
@@ -57,7 +57,7 @@ export default function LocalDBProvider({ children }: LocalDBProviderProps) {
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#8EBF24"
+                stroke="var(--primary)"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -67,16 +67,16 @@ export default function LocalDBProvider({ children }: LocalDBProviderProps) {
                 <path d="M7 8l5-5 5 5" />
               </svg>
             </div>
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-[#8EBF24] border-2 border-[#F9FBF6] animate-pulse" />
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-[var(--primary)] border-2 border-[var(--background)] animate-pulse" />
           </div>
           <div className="text-center">
             <p className="font-heading text-sm text-[#1E1E1E]">AgroSync</p>
             <p className="font-body text-xs text-[#9CA3AF] mt-0.5">Iniciando sistema...</p>
           </div>
           {/* Progress bar */}
-          <div className="w-32 h-1 bg-[#E2EDD6] rounded-full overflow-hidden">
+          <div className="w-32 h-1 bg-[var(--border)] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#8EBF24] rounded-full"
+              className="h-full bg-[var(--primary)] rounded-full"
               style={{
                 width: "60%",
                 animation: "progress-fill 0.8s ease-out forwards",

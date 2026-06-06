@@ -151,11 +151,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             collapsed ? "h-14 px-4 justify-center" : "h-14 px-5 gap-3"
           )}
         >
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#8EBF24] shrink-0">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary shrink-0">
             <Leaf size={16} className="text-white" />
           </div>
           {!collapsed && (
-            <span className="font-heading text-[#F9FBF6] text-base tracking-tight truncate">
+            <span className="font-heading text-[var(--background)] text-base tracking-tight truncate">
               AgroSync
             </span>
           )}
@@ -187,7 +187,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               "flex items-center gap-3 px-2.5 py-2 rounded-md text-sm transition-all duration-150 group",
               collapsed ? "justify-center" : "",
               pathname === "/"
-                ? "bg-[#8EBF24]/15 text-[#BEE86B] border-l-2 border-[#8EBF24]"
+                ? "bg-primary/15 text-accent border-l-2 border-primary"
                 : "text-white/60 hover:text-white/90 hover:bg-white/5"
             )}
             title={collapsed ? "Dashboard" : undefined}
@@ -243,23 +243,23 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                         "flex items-center gap-3 px-2.5 py-2 rounded-md text-xs transition-all duration-150 group relative",
                         collapsed ? "justify-center" : "",
                         isActive(item.href)
-                          ? "bg-[#8EBF24]/12 text-[#BEE86B] border-l-2 border-[#8EBF24] pl-[9px]"
+                          ? "bg-primary/12 text-accent border-l-2 border-primary pl-[9px]"
                           : "text-white/55 hover:text-white/85 hover:bg-white/5"
                       )}
                     >
-                      <span className={cn("shrink-0", isActive(item.href) ? "text-[#BEE86B]" : "")}>
+                      <span className={cn("shrink-0", isActive(item.href) ? "text-accent" : "")}>
                         {item.icon}
                       </span>
                       {!collapsed && (
                         <span className="font-body text-xs truncate">{item.label}</span>
                       )}
                       {!collapsed && item.badge && (
-                        <Badge className="ml-auto bg-[#8EBF24]/20 text-[#BEE86B] border-0 text-[10px] px-1.5 py-0 h-4">
+                        <Badge className="ml-auto bg-primary/20 text-accent border-0 text-[10px] px-1.5 py-0 h-4">
                           {item.badge}
                         </Badge>
                       )}
                       {collapsed && item.badge && (
-                        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#8EBF24]" />
+                        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
                       )}
                     </Link>
                   ))}
@@ -278,7 +278,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             )}
           >
             <Avatar className="h-7 w-7 shrink-0">
-              <AvatarFallback className="bg-[#8EBF24]/20 text-[#BEE86B] text-[10px] font-heading">
+              <AvatarFallback className="bg-primary/20 text-accent text-[10px] font-heading">
                 JM
               </AvatarFallback>
             </Avatar>

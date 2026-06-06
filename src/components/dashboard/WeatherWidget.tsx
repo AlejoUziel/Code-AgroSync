@@ -36,7 +36,7 @@ export default function WeatherWidget() {
       <div className="grid grid-cols-3 gap-2 mb-4">
         {[
           { icon: <Droplets size={12} className="text-blue-400" />, label: "Humedad", value: "68%" },
-          { icon: <Wind size={12} className="text-[#BEE86B]" />, label: "Viento", value: "14 km/h" },
+          { icon: <Wind size={12} className="text-[var(--accent)]" />, label: "Viento", value: "14 km/h" },
           { icon: <Thermometer size={12} className="text-red-400" />, label: "Sensación", value: "30°" },
         ].map((stat) => (
           <div key={stat.label} className="bg-white/5 rounded-lg p-2 text-center">

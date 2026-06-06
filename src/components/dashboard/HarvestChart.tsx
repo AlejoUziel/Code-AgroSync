@@ -51,7 +51,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function HarvestChart() {
   return (
-    <div className="bg-white rounded-xl border border-[#E2EDD6] p-5 h-full">
+    <div className="bg-white rounded-xl border border-[var(--border)] p-5 h-full">
       <div className="flex items-start justify-between mb-5">
         <div>
           <h2 className="font-heading text-sm text-[#1E1E1E]">
@@ -63,8 +63,8 @@ export default function HarvestChart() {
         </div>
         <div className="flex items-center gap-2">
           {[
-            { label: "Maíz", color: "#8EBF24" },
-            { label: "Trigo", color: "#BEE86B" },
+            { label: "Maíz", color: "var(--primary)" },
+            { label: "Trigo", color: "var(--accent)" },
             { label: "Sorgo", color: "#D4EE9A" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5">
@@ -85,12 +85,12 @@ export default function HarvestChart() {
           <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="maizGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8EBF24" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#8EBF24" stopOpacity={0} />
+                <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="trigoGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#BEE86B" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#BEE86B" stopOpacity={0} />
+                <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="sorgoGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#D4EE9A" stopOpacity={0.15} />
@@ -99,7 +99,7 @@ export default function HarvestChart() {
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="#E2EDD6"
+              stroke="var(--border)"
               vertical={false}
             />
             <XAxis
@@ -118,20 +118,20 @@ export default function HarvestChart() {
             <Area
               type="monotone"
               dataKey="maiz"
-              stroke="#8EBF24"
+              stroke="var(--primary)"
               strokeWidth={2}
               fill="url(#maizGrad)"
               dot={false}
-              activeDot={{ r: 4, fill: "#8EBF24", strokeWidth: 0 }}
+              activeDot={{ r: 4, fill: "var(--primary)", strokeWidth: 0 }}
             />
             <Area
               type="monotone"
               dataKey="trigo"
-              stroke="#BEE86B"
+              stroke="var(--accent)"
               strokeWidth={2}
               fill="url(#trigoGrad)"
               dot={false}
-              activeDot={{ r: 4, fill: "#BEE86B", strokeWidth: 0 }}
+              activeDot={{ r: 4, fill: "var(--accent)", strokeWidth: 0 }}
             />
             <Area
               type="monotone"

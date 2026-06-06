@@ -19,7 +19,7 @@ export default function AppShell({
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#F9FBF6]">
+    <div className="min-h-screen bg-[var(--background)]">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       <div
         className={cn(

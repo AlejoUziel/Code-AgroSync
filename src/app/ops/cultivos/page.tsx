@@ -14,7 +14,7 @@ const cultivos = [
 ];
 
 const estadoConfig: Record<string, string> = {
-  "En Progreso": "bg-[#F0F5EA] text-[#8EBF24] border-0",
+  "En Progreso": "bg-[var(--secondary)] text-[var(--primary)] border-0",
   "Alerta": "bg-amber-50 text-amber-600 border-0",
   "Nuevo": "bg-blue-50 text-blue-600 border-0",
   "Cosechado": "bg-gray-100 text-gray-500 border-0",
@@ -25,7 +25,7 @@ const etapaColor: Record<string, string> = {
   "Vegetativa": "bg-emerald-100 text-emerald-600",
   "Floración": "bg-purple-100 text-purple-600",
   "Encañado": "bg-amber-100 text-amber-600",
-  "Llenado": "bg-[#BEE86B]/30 text-[#6E9A1A]",
+  "Llenado": "bg-[var(--accent)]/30 text-[var(--primary-dark)]",
 };
 
 export default function CultivosPage() {
@@ -40,7 +40,7 @@ export default function CultivosPage() {
             { label: "Promedio Ciclo", value: "145 días", sub: "duración media" },
             { label: "En Alerta", value: "7", sub: "requieren revisión" },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-xl border border-[#E2EDD6] p-4">
+            <div key={s.label} className="bg-white rounded-xl border border-[var(--border)] p-4">
               <p className="font-body text-xs text-[#9CA3AF]">{s.label}</p>
               <p className="font-heading text-2xl text-[#1E1E1E] mt-1">{s.value}</p>
               <p className="font-body text-[11px] text-[#C4C4C4]">{s.sub}</p>
@@ -49,16 +49,16 @@ export default function CultivosPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-xl border border-[#E2EDD6]">
-          <div className="flex items-center gap-3 p-4 border-b border-[#E2EDD6]">
-            <div className="flex items-center gap-2 bg-[#F9FBF6] rounded-lg px-3 py-2 border border-[#E2EDD6] flex-1 max-w-xs focus-within:border-[#8EBF24] transition-colors">
+        <div className="bg-white rounded-xl border border-[var(--border)]">
+          <div className="flex items-center gap-3 p-4 border-b border-[var(--border)]">
+            <div className="flex items-center gap-2 bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] flex-1 max-w-xs focus-within:border-[var(--primary)] transition-colors">
               <Search size={13} className="text-[#9CA3AF]" />
               <input type="text" placeholder="Buscar cultivo..." className="bg-transparent text-xs font-body text-[#1E1E1E] placeholder:text-[#9CA3AF] outline-none w-full" />
             </div>
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E2EDD6] text-xs font-body text-[#6B7280] hover:border-[#8EBF24]/40 transition-all">
+            <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 transition-all">
               <Filter size={13} /> Filtrar
             </button>
-            <button className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8EBF24] text-white text-xs font-medium-body hover:bg-[#6E9A1A] transition-colors">
+            <button className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors">
               <Plus size={13} /> Registrar Cultivo
             </button>
           </div>
@@ -66,7 +66,7 @@ export default function CultivosPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#E2EDD6]">
+                <tr className="border-b border-[var(--border)]">
                   {["ID", "Cultivo", "Parcela", "Inicio", "Cosecha Estimada", "Progreso Ciclo", "Etapa", "Estado", ""].map((h) => (
                     <th key={h} className="text-left px-4 py-3 font-heading text-[10px] text-[#9CA3AF] uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
@@ -74,12 +74,12 @@ export default function CultivosPage() {
               </thead>
               <tbody>
                 {cultivos.map((c) => (
-                  <tr key={c.id} className="border-b border-[#F0F5EA] hover:bg-[#F9FBF6] transition-colors group">
+                  <tr key={c.id} className="border-b border-[var(--secondary)] hover:bg-[var(--background)] transition-colors group">
                     <td className="px-4 py-3 font-body text-[11px] text-[#9CA3AF]">{c.id}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-[#8EBF24]/10 flex items-center justify-center">
-                          <Sprout size={11} className="text-[#8EBF24]" />
+                        <div className="w-6 h-6 rounded-md bg-[var(--primary)]/10 flex items-center justify-center">
+                          <Sprout size={11} className="text-[var(--primary)]" />
                         </div>
                         <span className="font-medium-body text-xs text-[#1E1E1E]">{c.nombre}</span>
                       </div>
@@ -94,7 +94,7 @@ export default function CultivosPage() {
                     </td>
                     <td className="px-4 py-3 w-36">
                       <div className="flex items-center gap-2">
-                        <Progress value={Math.round((c.dias / c.ciclo) * 100)} className="h-1.5 flex-1 bg-[#E2EDD6]" />
+                        <Progress value={Math.round((c.dias / c.ciclo) * 100)} className="h-1.5 flex-1 bg-[var(--border)]" />
                         <span className="font-body text-[11px] text-[#9CA3AF] w-7 shrink-0">{Math.round((c.dias / c.ciclo) * 100)}%</span>
                       </div>
                     </td>
@@ -107,7 +107,7 @@ export default function CultivosPage() {
                       <Badge className={`text-[10px] px-2 py-0.5 ${estadoConfig[c.estado]}`}>{c.estado}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-[#F0F5EA] text-[#9CA3AF]">
+                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF]">
                         <MoreHorizontal size={14} />
                       </button>
                     </td>
@@ -117,11 +117,11 @@ export default function CultivosPage() {
             </table>
           </div>
 
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[#E2EDD6]">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]">
             <p className="font-body text-xs text-[#9CA3AF]">Mostrando 5 de 128 cultivos</p>
             <div className="flex items-center gap-1">
               {[1, 2, 3, "...", 26].map((p, i) => (
-                <button key={i} className={`w-7 h-7 rounded-md text-xs font-body transition-colors ${p === 1 ? "bg-[#8EBF24] text-white" : "text-[#6B7280] hover:bg-[#F0F5EA]"}`}>{p}</button>
+                <button key={i} className={`w-7 h-7 rounded-md text-xs font-body transition-colors ${p === 1 ? "bg-[var(--primary)] text-white" : "text-[#6B7280] hover:bg-[var(--secondary)]"}`}>{p}</button>
               ))}
             </div>
           </div>
