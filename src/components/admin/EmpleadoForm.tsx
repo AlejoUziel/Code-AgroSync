@@ -40,7 +40,7 @@ function validate(data: Partial<Empleado>): FormErrors {
   } else {
     const numericStr = data.salario.replace(/[^0-9.]/g, "");
     if (!numericStr) {
-      errors.salario = "Formato de salario inválido (ej. $4,500).";
+      errors.salario = "Formato de salario inválido (ej. L. 4,500).";
     }
   }
   if (!data.contrato) errors.contrato = "Selecciona un tipo de contrato.";
@@ -143,7 +143,7 @@ export default function EmpleadoForm({
     if (key === "salario") {
       let cleaned = value.replace(/[^0-9]/g, "");
       if (cleaned) {
-        finalValue = `$${Number(cleaned).toLocaleString("en-US")}`;
+        finalValue = `L. ${Number(cleaned).toLocaleString("en-US")}`;
       } else {
         finalValue = "";
       }
@@ -272,9 +272,9 @@ export default function EmpleadoForm({
               </Field>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field label="Salario Mensual (USD)" required error={err("salario")} hint="Se formateará automáticamente">
+              <Field label="Salario Mensual (HNL)" required error={err("salario")} hint="Se formateará automáticamente">
                 <TextInput
-                  placeholder="Ej. 8500"
+                  placeholder="Ej. 18500"
                   value={form.salario ?? ""}
                   onChange={(e) => set("salario", e.target.value)}
                   error={!!err("salario")}
