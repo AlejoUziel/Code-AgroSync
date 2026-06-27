@@ -195,8 +195,7 @@ export default function Topbar({
   return (
     <>
       <header
-        className="h-14 flex items-center gap-4 px-5 bg-card/70 backdrop-blur-md border-b border-[#E2EDD6] sticky top-0 z-10"
-        style={{ borderBottomColor: "rgba(142,191,36,0.15)" }}
+        className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-[var(--border)] bg-white/78 px-4 shadow-[0_10px_30px_rgba(30,30,30,0.045)] backdrop-blur-xl sm:px-5"
       >
       {/* Mobile menu toggle */}
       <button
@@ -220,7 +219,7 @@ export default function Topbar({
 
       {/* Title */}
       <div className="flex-1 min-w-0">
-        <h1 className="font-heading text-base text-foreground truncate leading-tight">
+        <h1 className="font-heading text-[17px] text-foreground truncate leading-tight">
           {title}
         </h1>
         {subtitle && (
@@ -229,7 +228,7 @@ export default function Topbar({
       </div>
 
       {/* Search */}
-      <div className="hidden md:flex items-center gap-2 bg-secondary rounded-lg px-3 py-1.5 border border-border w-48 group focus-within:border-primary transition-colors">
+      <div className="pro-focus hidden md:flex items-center gap-2 rounded-xl border border-border bg-[var(--surface-2)] px-3 py-2 w-56 group">
         <Search size={13} className="text-muted-foreground shrink-0" />
         <input
           type="text"
@@ -240,7 +239,7 @@ export default function Topbar({
       </div>
 
       {/* Color Customizer Circles directly in the Topbar */}
-      <div className="flex items-center gap-1.5 bg-secondary px-2.5 py-1.5 rounded-full border border-border shadow-xs">
+      <div className="flex items-center gap-1.5 rounded-full border border-border bg-white/75 px-2.5 py-1.5 shadow-[var(--shadow-xs)]">
         {brandColors.map((color) => (
           <button
             key={color.hex}
@@ -262,14 +261,14 @@ export default function Topbar({
             setNotificationsOpen((open) => !open);
             setUserOpen(false);
           }}
-          className="relative w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+          className="relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
           title="Notificaciones"
         >
           <Bell size={16} />
           {unread > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />}
         </button>
         {notificationsOpen && (
-          <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+          <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-md)]">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <p className="font-heading text-sm text-foreground">Notificaciones</p>
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">{unread} nuevas</span>
@@ -309,7 +308,7 @@ export default function Topbar({
             setUserOpen((open) => !open);
             setNotificationsOpen(false);
           }}
-          className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-secondary transition-colors group"
+          className="flex items-center gap-2 rounded-xl border border-transparent px-2 py-1.5 hover:border-border hover:bg-secondary transition-colors group"
         >
           <Avatar className="h-6 w-6">
             <AvatarFallback className="bg-primary/15 text-primary text-[9px] font-heading">
@@ -322,7 +321,7 @@ export default function Topbar({
           <ChevronDown size={12} className="text-muted-foreground" />
         </button>
         {userOpen && (
-          <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+          <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-md)]">
             <div className="border-b border-border px-4 py-3">
               <p className="truncate text-xs font-medium-body text-foreground">{user?.nombre ?? "Usuario"}</p>
               <p className="truncate text-[11px] text-muted-foreground">{user ? `${user.departamentoLabel} · ${user.rol}` : "Cargando..."}</p>

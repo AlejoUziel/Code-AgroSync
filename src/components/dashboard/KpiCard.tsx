@@ -55,29 +55,29 @@ export default function KpiCard({
   const toneStyle = toneClass[tone];
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-[var(--primary)]/40 hover:shadow-[0_18px_45px_rgba(30,30,30,0.07)]">
+    <div className="pro-card pro-card-hover group relative overflow-hidden rounded-2xl p-4">
       <div className={cn("pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl transition-opacity group-hover:opacity-90", toneStyle.glow)} />
       <div className="flex items-start justify-between gap-3">
-        <div className={cn("relative flex h-12 w-12 items-center justify-center rounded-xl ring-1 transition-transform group-hover:scale-105", toneStyle.icon)}>
+        <div className={cn("relative flex h-12 w-12 items-center justify-center rounded-2xl ring-1 transition-transform group-hover:scale-105", toneStyle.icon)}>
           <Icon size={21} strokeWidth={2.2} />
           <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-card bg-[var(--accent)]" />
         </div>
-        <div className={cn("flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--background)] px-2.5 py-1 text-[10px] font-medium-body shadow-sm", trendColor)}>
+        <div className={cn("flex items-center gap-1 rounded-full border border-[var(--border)] bg-white/80 px-2.5 py-1 text-[10px] font-medium-body shadow-[var(--shadow-xs)]", trendColor)}>
           <TrendIcon size={12} strokeWidth={2.4} />
           {change}
         </div>
       </div>
 
       <div className="mt-4">
-        <p className="text-xs font-body text-[#6B7280]">{label}</p>
+        <p className="text-xs font-medium-body text-[var(--text-soft)]">{label}</p>
         <div className="mt-1 flex items-baseline gap-1.5">
-          <span className="font-heading text-3xl leading-none text-[#1E1E1E]">{value}</span>
+          <span className="font-heading text-3xl leading-none text-[#171A16]">{value}</span>
           <span className="text-xs font-body text-[#9CA3AF]">{unit}</span>
         </div>
         <p className="mt-2 text-[11px] font-body text-[#9CA3AF]">{detail}</p>
       </div>
 
-      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[var(--secondary)]">
+      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[var(--surface-3)]">
         <div
           className={cn("h-full rounded-full transition-all", toneStyle.bar)}
           style={{ width: `${Math.max(8, Math.min(progress, 100))}%` }}

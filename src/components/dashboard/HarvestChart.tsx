@@ -56,7 +56,7 @@ function ChartTooltip({ active, payload, label }: TooltipProps) {
 
 export default function HarvestChart() {
   return (
-    <div className="h-full rounded-xl border border-[var(--border)] bg-card p-5">
+    <div className="pro-card h-full rounded-2xl p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -76,7 +76,7 @@ export default function HarvestChart() {
                 <span className={`h-2 w-2 rounded-full ${item.color}`} />
                 <span className="text-[10px] font-body text-[#6B7280]">{item.label}</span>
               </div>
-              <p className="mt-1 text-xs font-heading text-[#1E1E1E]">{item.value}</p>
+              <p className="mt-1 text-xs font-heading text-[#171A16]">{item.value}</p>
             </div>
           ))}
         </div>
@@ -85,7 +85,7 @@ export default function HarvestChart() {
       <div className="h-[330px]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-            <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid stroke="rgba(221,233,207,0.86)" strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} tickFormatter={(v) => `${v}t`} />
             <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(142, 191, 36, 0.07)" }} />

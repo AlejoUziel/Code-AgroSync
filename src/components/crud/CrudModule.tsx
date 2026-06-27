@@ -68,9 +68,9 @@ function valueLabel(value: ResourceRecord[string]) {
 
 function SummaryCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="bg-card rounded-xl border border-[var(--border)] p-4">
-      <p className="font-body text-xs text-[#9CA3AF]">{label}</p>
-      <p className="font-heading text-2xl text-[#1E1E1E] mt-1">{value}</p>
+    <div className="pro-card pro-card-hover rounded-2xl p-4">
+      <p className="font-medium-body text-xs text-[var(--text-soft)]">{label}</p>
+      <p className="font-heading text-2xl text-[#171A16] mt-1">{value}</p>
       <p className="font-body text-[11px] text-[#C4C4C4]">{sub}</p>
     </div>
   );
@@ -88,7 +88,7 @@ function FieldInput({
   options?: string[];
 }) {
   const base =
-    "mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/10";
+    "pro-focus mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white/85 px-3 text-sm outline-none";
 
   const selectOptions = options ?? field.options;
   if (field.type === "select" || selectOptions?.length) {
@@ -111,7 +111,7 @@ function FieldInput({
         value={String(value ?? "")}
         onChange={(event) => onChange(event.target.value)}
         rows={3}
-        className="mt-1 w-full rounded-lg border border-[var(--border)] bg-card px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/10"
+        className="pro-focus mt-1 w-full rounded-xl border border-[var(--border)] bg-white/85 px-3 py-2 text-sm outline-none"
       />
     );
   }
@@ -265,7 +265,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
       </div>
 
       {resourceKey === "parcelas" && (
-        <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3">
+        <div className="pro-card flex items-center gap-3 rounded-2xl px-4 py-3">
           <MapPin size={16} className="text-[var(--primary)]" />
           <p className="text-sm text-[#1E1E1E]">
             Mapa y geolocalizacion restringidos a Honduras.
@@ -273,9 +273,9 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
         </div>
       )}
 
-      <div className="bg-card rounded-xl border border-[var(--border)]">
-        <div className="flex flex-wrap items-center gap-3 p-4 border-b border-[var(--border)]">
-          <div className="flex items-center gap-2 bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] flex-1 min-w-[220px] max-w-sm focus-within:border-[var(--primary)] transition-colors">
+      <div className="pro-card overflow-hidden rounded-2xl">
+        <div className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] bg-white/48 p-4">
+          <div className="pro-focus flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 flex-1 min-w-[220px] max-w-sm">
             <Search size={13} className="text-[#9CA3AF]" />
             <input
               type="text"
@@ -287,7 +287,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
           </div>
 
           {definition.statusKey && (
-            <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-[#6B7280]">
+            <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white/70 px-3 py-2 text-xs text-[#6B7280]">
               <Filter size={13} />
               <select value={status} onChange={(event) => setStatus(event.target.value)} className="bg-transparent outline-none">
                 <option value="">Todos</option>
@@ -302,7 +302,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
 
           <button
             onClick={openCreate}
-            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors"
+            className="ml-auto flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-medium-body text-white shadow-[0_10px_24px_rgba(142,191,36,0.22)] transition-colors hover:bg-[var(--primary-dark)]"
           >
             <Plus size={13} /> Agregar {definition.entityLabel}
           </button>
@@ -313,7 +313,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
             <thead>
               <tr className="border-b border-[var(--border)]">
                 {["ID", ...definition.tableFields.map((key) => definition.fields.find((field) => field.key === key)?.label ?? key), ""].map((heading) => (
-                  <th key={heading} className="text-left px-4 py-3 font-heading text-[10px] text-[#9CA3AF] uppercase tracking-wider whitespace-nowrap">
+                      <th key={heading} className="bg-[var(--surface-2)]/60 text-left px-4 py-3 font-heading text-[10px] text-[#7A8678] uppercase tracking-wider whitespace-nowrap">
                     {heading}
                   </th>
                 ))}
@@ -321,7 +321,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
             </thead>
             <tbody>
               {filtered.map((record) => (
-                <tr key={record.id} className="border-b border-[var(--secondary)] hover:bg-[var(--background)] transition-colors group">
+                <tr key={record.id} className="group border-b border-[var(--secondary)] transition-colors hover:bg-[var(--surface-2)]/60">
                   <td className="px-4 py-3 font-body text-[11px] text-[#9CA3AF]">{record.id}</td>
                   {definition.tableFields.map((key, index) => {
                     const value = record[key];

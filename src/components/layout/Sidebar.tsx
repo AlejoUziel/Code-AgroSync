@@ -23,6 +23,7 @@ import {
   Settings,
   Menu,
   X,
+  ShieldCheck,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -163,24 +164,29 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <aside
         className={cn(
           "fixed left-0 top-0 z-30 h-screen flex flex-col transition-all duration-300 ease-in-out",
-          "bg-[#1E1E1E] border-r border-white/6",
-          collapsed ? "w-[64px]" : "w-[240px]"
+          "bg-[linear-gradient(180deg,#171A16_0%,#1E241A_54%,#141713_100%)] border-r border-white/8 shadow-[18px_0_48px_rgba(20,23,19,0.14)]",
+          collapsed ? "w-[64px]" : "w-[256px]"
         )}
       >
         {/* Logo area */}
         <div
           className={cn(
             "flex items-center border-b border-white/6 shrink-0",
-            collapsed ? "h-14 px-4 justify-center" : "h-14 px-5 gap-3"
+            collapsed ? "h-16 px-4 justify-center" : "h-16 px-5 gap-3"
           )}
         >
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary shrink-0">
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary shadow-[0_10px_28px_rgba(142,191,36,0.28)] shrink-0">
             <Leaf size={16} className="text-white" />
           </div>
           {!collapsed && (
-            <span className="font-heading text-[var(--background)] text-base tracking-tight truncate">
-              AgroSync
-            </span>
+            <div className="min-w-0">
+              <span className="font-heading text-[var(--background)] text-base tracking-normal truncate block">
+                AgroSync
+              </span>
+              <span className="text-[10px] font-medium-body uppercase tracking-widest text-white/35">
+                Pro Console
+              </span>
+            </div>
           )}
           {!collapsed && (
             <button
@@ -207,11 +213,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <Link
             href={homeHref}
             className={cn(
-              "flex items-center gap-3 px-2.5 py-2 rounded-md text-sm transition-all duration-150 group",
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group",
               collapsed ? "justify-center" : "",
               pathname === homeHref
-                ? "bg-primary/15 text-accent border-l-2 border-primary"
-                : "text-white/60 hover:text-white/90 hover:bg-card/5"
+                ? "bg-primary/16 text-accent ring-1 ring-primary/20 shadow-[0_10px_24px_rgba(142,191,36,0.08)]"
+                : "text-white/62 hover:text-white/90 hover:bg-white/6"
             )}
             title={collapsed ? "Dashboard" : undefined}
           >
@@ -223,14 +229,14 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
 
         {/* Nav groups */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-3 space-y-2">
           {visibleGroups.map((group) => (
             <div key={group.category} className="mb-1">
               {/* Category header */}
               <button
                 onClick={() => toggleGroup(group.category)}
                 className={cn(
-                  "w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors",
+                  "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors",
                   "text-white/30 hover:text-white/60",
                   collapsed ? "justify-center" : "justify-between"
                 )}
@@ -263,11 +269,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       href={item.href}
                       title={collapsed ? item.label : undefined}
                       className={cn(
-                        "flex items-center gap-3 px-2.5 py-2 rounded-md text-xs transition-all duration-150 group relative",
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 group relative",
                         collapsed ? "justify-center" : "",
                         isActive(item.href)
-                          ? "bg-primary/12 text-accent border-l-2 border-primary pl-[9px]"
-                          : "text-white/55 hover:text-white/85 hover:bg-card/5"
+                          ? "bg-primary/14 text-accent ring-1 ring-primary/18 shadow-[0_10px_24px_rgba(142,191,36,0.07)]"
+                          : "text-white/56 hover:text-white/88 hover:bg-white/6"
                       )}
                     >
                       <span className={cn("shrink-0", isActive(item.href) ? "text-accent" : "")}>
@@ -293,7 +299,16 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </nav>
 
         {/* Bottom user area */}
-        <div className="shrink-0 border-t border-white/6 p-3">
+        <div className="shrink-0 border-t border-white/8 p-3">
+          {!collapsed && (
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2">
+              <ShieldCheck size={14} className="text-accent" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium-body uppercase tracking-widest text-white/36">Version</p>
+                <p className="text-xs font-medium-body text-white/78">Pro Operativa</p>
+              </div>
+            </div>
+          )}
           <div
             className={cn(
               "flex items-center gap-3",
