@@ -2,7 +2,7 @@ import { resourceDefinitions } from "@/lib/resource-definitions";
 import { agroReportPdf } from "@/lib/pdf";
 import { listResource } from "@/lib/resource-store";
 
-async function resourceOrSeed(resource: "cultivos" | "cosechas" | "alertas") {
+async function resourceOrSeed(resource: "cultivos" | "cosechas" | "alertas" | "reportes") {
   try {
     const result = await listResource(resource);
     return result.dbConfigured ? result.items : resourceDefinitions[resource].seed;
@@ -13,7 +13,8 @@ async function resourceOrSeed(resource: "cultivos" | "cosechas" | "alertas") {
 
 export async function GET(_request: Request, context: RouteContext<"/api/reports/[id]/pdf">) {
   const { id } = await context.params;
-  const report = resourceDefinitions.reportes.seed.find((item) => item.id === id);
+  const reports = await resourceOrSeed("reportes");
+  const report = reports.find((item) => item.id === id);
   const title = String(report?.titulo ?? `Reporte ${id}`);
   const [cultivos, cosechas, alertas] = await Promise.all([
     resourceOrSeed("cultivos"),

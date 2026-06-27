@@ -99,7 +99,7 @@ export default function UsuariosPage() {
   const empresaDB = useLocalDB<Empresa>("empresas", seedEmpresas);
   const usuarioDB = useLocalDB<Usuario>("usuarios", seedUsuarios);
   const { toast, showToast, hideToast } = useToast();
-  const [dbDirectoryConfigured, setDbDirectoryConfigured] = useState(false);
+  const [dbDirectoryConfigured, setDbDirectoryConfigured] = useState(true);
   const [dbUsuarios, setDbUsuarios] = useState<Usuario[]>([]);
   const [dbEmpresas, setDbEmpresas] = useState<Empresa[]>([]);
   const [searchingDb, setSearchingDb] = useState(false);
@@ -171,8 +171,8 @@ export default function UsuariosPage() {
   const [viewingEmpresa, setViewingEmpresa] = useState<Empresa | null>(null);
 
   // ── Derived data ─────────────────────────────────────────────────────────────
-  const usuarioRecords = dbDirectoryConfigured ? dbUsuarios : usuarioDB.records;
-  const empresaRecords = dbDirectoryConfigured ? dbEmpresas : empresaDB.records;
+  const usuarioRecords = dbDirectoryConfigured ? dbUsuarios : [];
+  const empresaRecords = dbDirectoryConfigured ? dbEmpresas : [];
 
   const filteredUsuarios = useMemo(() => {
     const q = search.toLowerCase();
@@ -308,8 +308,36 @@ export default function UsuariosPage() {
   };
 
   // ── Handlers: Empresas ────────────────────────────────────────────────────────
-  const handleSaveEmpresa = (data: Partial<Empresa>) => {
-    if (editingEmpresa) {
+  const handleSaveEmpresa = async (data: Partial<Empresa>) => {
+    if (dbDirectoryConfigured) {
+      const response = await fetch(
+        editingEmpresa
+          ? `/api/admin-directory?tab=empresas&id=${encodeURIComponent(editingEmpresa.id)}`
+          : "/api/admin-directory?tab=empresas",
+        {
+          method: editingEmpresa ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...data,
+            pais: data.pais ?? "Honduras",
+            plan: data.plan ?? "Starter",
+            estado: data.estado ?? "Activa",
+            fechaRegistro: data.fechaRegistro ?? new Date().toISOString(),
+          }),
+        }
+      );
+      const result = (await response.json().catch(() => ({}))) as { item?: Empresa; message?: string; reused?: boolean };
+      if (!response.ok || !result.item) {
+        showToast(result.message ?? "No se pudo guardar la empresa en MySQL.", "error");
+        return;
+      }
+      await loadDirectory("empresas", search);
+      showToast(
+        result.reused
+          ? `Empresa "${result.item.nombre}" ya existia en MySQL.`
+          : `Empresa "${result.item.nombre}" ${editingEmpresa ? "actualizada" : "creada"} en MySQL.`
+      );
+    } else if (editingEmpresa) {
       empresaDB.update(editingEmpresa.id, data);
       showToast(`Empresa "${data.nombre}" actualizada.`);
     } else {
@@ -326,15 +354,27 @@ export default function UsuariosPage() {
     setEditingEmpresa(null);
   };
 
-  const handleDeleteEmpresa = () => {
+  const handleDeleteEmpresa = async () => {
     if (!deletingEmpresa) return;
-    // Also remove linked users
-    const linkedUsers = usuarioDB.records.filter(
-      (u) => u.empresaId === deletingEmpresa.id
-    );
-    linkedUsers.forEach((u) => usuarioDB.remove(u.id));
-    empresaDB.remove(deletingEmpresa.id);
-    showToast(`Empresa "${deletingEmpresa.nombre}" y ${linkedUsers.length} usuario(s) eliminados.`, "error");
+    if (dbDirectoryConfigured) {
+      const response = await fetch(`/api/admin-directory?tab=empresas&id=${encodeURIComponent(deletingEmpresa.id)}`, {
+        method: "DELETE",
+      });
+      const result = (await response.json().catch(() => ({}))) as { message?: string };
+      if (!response.ok) {
+        showToast(result.message ?? "No se pudo eliminar la empresa en MySQL.", "error");
+        return;
+      }
+      await loadDirectory("empresas", search);
+      showToast(`Empresa "${deletingEmpresa.nombre}" eliminada de MySQL.`, "error");
+    } else {
+      const linkedUsers = usuarioDB.records.filter(
+        (u) => u.empresaId === deletingEmpresa.id
+      );
+      linkedUsers.forEach((u) => usuarioDB.remove(u.id));
+      empresaDB.remove(deletingEmpresa.id);
+      showToast(`Empresa "${deletingEmpresa.nombre}" y ${linkedUsers.length} usuario(s) eliminados.`, "error");
+    }
     setDeletingEmpresa(null);
     setViewingEmpresa(null);
   };
@@ -428,8 +468,17 @@ export default function UsuariosPage() {
 
           {/* Reset */}
           <button
-            onClick={() => { empresaDB.reset(); usuarioDB.reset(); showToast("Datos iniciales restaurados."); }}
-            title="Restaurar datos iniciales"
+            onClick={() => {
+              if (dbDirectoryConfigured) {
+                void loadDirectory(tab, search);
+                showToast("Datos sincronizados desde MySQL.");
+              } else {
+                empresaDB.reset();
+                usuarioDB.reset();
+                showToast("Datos iniciales restaurados.");
+              }
+            }}
+            title={dbDirectoryConfigured ? "Sincronizar con MySQL" : "Restaurar datos iniciales"}
             className="p-2 rounded-lg border border-[var(--border)] text-[#9CA3AF] hover:text-[var(--primary)] hover:border-[var(--primary)]/40 transition-all"
           >
             <RefreshCw size={13} />

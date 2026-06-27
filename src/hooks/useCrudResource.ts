@@ -28,7 +28,7 @@ function normalizeRecords(resourceKey: ResourceKey, records: ResourceRecord[]) {
 export function useCrudResource(resourceKey: ResourceKey) {
   const definition = resourceDefinitions[resourceKey];
   const storageKey = `agrosync_resource_${resourceKey}`;
-  const [records, setRecords] = useState<ResourceRecord[]>(definition.seed);
+  const [records, setRecords] = useState<ResourceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbConfigured, setDbConfigured] = useState(false);
 
@@ -50,18 +50,15 @@ export function useCrudResource(resourceKey: ResourceKey) {
       if (data.dbConfigured) {
         setRecords(normalizeRecords(resourceKey, data.items));
       } else {
-        const stored = localStorage.getItem(storageKey);
-        const localItems = stored ? (JSON.parse(stored) as ResourceRecord[]) : definition.seed;
-        persistLocal(localItems);
+        setRecords([]);
       }
     } catch {
-      const stored = localStorage.getItem(storageKey);
-      setRecords(stored ? (JSON.parse(stored) as ResourceRecord[]) : definition.seed);
+      setRecords([]);
       setDbConfigured(false);
     } finally {
       setLoading(false);
     }
-  }, [definition.seed, persistLocal, resourceKey, storageKey]);
+  }, [resourceKey]);
 
   useEffect(() => {
     void load();

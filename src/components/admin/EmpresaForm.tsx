@@ -63,7 +63,7 @@ const defaultForm: Partial<Empresa> = {
 interface EmpresaFormProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: Partial<Empresa>) => void;
+  onSave: (data: Partial<Empresa>) => void | Promise<void>;
   empresa?: Empresa | null; // null = create mode
 }
 
@@ -125,10 +125,11 @@ export default function EmpresaForm({
     if (Object.keys(errs).length > 0) return;
 
     setSaving(true);
-    // Simulate async save (replace with fetch() for MySQL)
-    await new Promise((r) => setTimeout(r, 600));
-    onSave(form);
-    setSaving(false);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const err = (k: keyof Empresa) =>

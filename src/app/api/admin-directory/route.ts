@@ -76,6 +76,17 @@ function companyFromRow(row: CompanyRow) {
   };
 }
 
+async function findCompanyById(id: string) {
+  const rows = await query<CompanyRow[]>(
+    `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+     FROM empresas
+     WHERE id = :id
+     LIMIT 1`,
+    { id }
+  );
+  return rows[0] ? companyFromRow(rows[0]) : null;
+}
+
 function departamentoForRole(rol?: string) {
   if (rol === "Administrador" || rol === "Administrador IT") return "AdministradorIT";
   if (rol === "Gerente de Campo" || rol === "Supervisor" || rol === "Operador" || rol === "Jornalero") return "Operativo";
@@ -303,12 +314,74 @@ export async function PUT(request: Request) {
 
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
-  const body = (await request.json()) as UserPayload;
 
   if (!id) {
-    return Response.json({ message: "ID de usuario requerido." }, { status: 400 });
+    return Response.json({ message: "ID requerido." }, { status: 400 });
   }
 
+  if (url.searchParams.get("tab") === "empresas") {
+    const body = (await request.json()) as CompanyPayload;
+    const errors = validateCompanyPayload(body);
+    if (errors.length > 0) {
+      return Response.json({ message: errors.join(" ") }, { status: 400 });
+    }
+
+    try {
+      const duplicateCompany = await query<CompanyRow[]>(
+        `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+         FROM empresas
+         WHERE (nit = :nit OR email = :email) AND id <> :id
+         LIMIT 1`,
+        { id, nit: body.nit, email: String(body.email).toLowerCase().trim() }
+      );
+
+      if (duplicateCompany[0]) {
+        return Response.json(
+          { message: "Ya existe otra empresa con ese NIT / RUC o correo." },
+          { status: 409 }
+        );
+      }
+
+      await query<ResultSetHeader>(
+        `UPDATE empresas
+         SET nombre = :nombre,
+             nit = :nit,
+             email = :email,
+             telefono = :telefono,
+             direccion = :direccion,
+             ciudad = :ciudad,
+             pais = :pais,
+             plan = :plan,
+             estado = :estado,
+             notas = :notas
+         WHERE id = :id`,
+        {
+          id,
+          nombre: body.nombre,
+          nit: body.nit,
+          email: String(body.email).toLowerCase().trim(),
+          telefono: body.telefono,
+          direccion: body.direccion?.trim() || "Pendiente de completar",
+          ciudad: body.ciudad,
+          pais: body.pais ?? "Honduras",
+          plan: body.plan ?? "Starter",
+          estado: body.estado ?? "Activa",
+          notas: body.notas ?? null,
+        }
+      );
+    } catch (error) {
+      const message = error instanceof Error && error.message.includes("Duplicate")
+        ? "Ya existe una empresa con ese NIT / RUC o correo."
+        : "No se pudo actualizar la empresa en MySQL.";
+      return Response.json({ message }, { status: 400 });
+    }
+
+    const item = await findCompanyById(id);
+    if (!item) return Response.json({ message: "Empresa no encontrada." }, { status: 404 });
+    return Response.json({ dbConfigured: true, item });
+  }
+
+  const body = (await request.json()) as UserPayload;
   const errors = validateUserPayload(body, true);
   if (errors.length > 0) {
     return Response.json({ message: errors.join(" ") }, { status: 400 });
@@ -389,17 +462,19 @@ export async function DELETE(request: Request) {
   const id = url.searchParams.get("id");
 
   if (!id) {
-    return Response.json({ message: "ID de usuario requerido." }, { status: 400 });
+    return Response.json({ message: "ID requerido." }, { status: 400 });
   }
 
   try {
-    const result = await query<ResultSetHeader>("DELETE FROM usuarios WHERE id = :id", { id });
+    const tab = url.searchParams.get("tab");
+    const table = tab === "empresas" ? "empresas" : "usuarios";
+    const result = await query<ResultSetHeader>(`DELETE FROM ${table} WHERE id = :id`, { id });
     if (result.affectedRows === 0) {
-      return Response.json({ message: "Usuario no encontrado." }, { status: 404 });
+      return Response.json({ message: tab === "empresas" ? "Empresa no encontrada." : "Usuario no encontrado." }, { status: 404 });
     }
   } catch {
     return Response.json(
-      { message: "No se pudo eliminar el usuario porque tiene registros relacionados." },
+      { message: "No se pudo eliminar porque tiene registros relacionados." },
       { status: 409 }
     );
   }
