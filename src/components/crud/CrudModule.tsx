@@ -251,8 +251,33 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ recurso: resourceKey, recursoId: record.id, canal, destino, asunto, mensaje }),
     });
-    const result = (await response.json()) as { link?: string };
-    if (result.link) window.open(result.link, "_blank", "noopener,noreferrer");
+    const result = (await response.json().catch(() => ({}))) as {
+      deliveryMode?: "smtp" | "mailto" | "whatsapp";
+      link?: string;
+      message?: string;
+      sent?: boolean;
+    };
+
+    if (!response.ok) {
+      if (result.link && canal === "Correo") {
+        window.location.href = result.link;
+      }
+      window.alert(result.message ?? "No se pudo enviar la comunicacion.");
+      return;
+    }
+
+    if (result.deliveryMode === "smtp" && result.sent) {
+      window.alert("Correo enviado correctamente.");
+      return;
+    }
+
+    if (result.link) {
+      if (canal === "Correo") {
+        window.location.href = result.link;
+      } else {
+        window.open(result.link, "_blank", "noopener,noreferrer");
+      }
+    }
   };
 
   return (
