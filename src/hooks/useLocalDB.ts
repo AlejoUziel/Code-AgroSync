@@ -18,26 +18,29 @@ export function useLocalDB<T extends { id: string }>(
   key: string,
   seed: T[] = []
 ) {
-  const [records, setRecords] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Load from localStorage on mount
-  useEffect(() => {
+  const [records, setRecords] = useState<T[]>(() => {
+    if (typeof window === "undefined") return [];
     try {
       const stored = localStorage.getItem(`agrosync_${key}`);
       if (stored) {
-        setRecords(JSON.parse(stored));
+        return JSON.parse(stored);
       } else if (seed.length > 0) {
-        // First time — seed demo data
         localStorage.setItem(`agrosync_${key}`, JSON.stringify(seed));
-        setRecords(seed);
+        return seed;
       }
     } catch {
-      setRecords(seed);
-    } finally {
-      setLoading(false);
+      return seed;
     }
-  }, [key]);
+    return [];
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Load from localStorage on mount / sync loading state
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false);
+    }, 0);
+  }, []);
 
   // Persist to localStorage whenever records change
   const persist = useCallback(
@@ -100,4 +103,3 @@ export function useLocalDB<T extends { id: string }>(
 
   return { records, loading, getAll, getById, create, update, remove, reset };
 }
-

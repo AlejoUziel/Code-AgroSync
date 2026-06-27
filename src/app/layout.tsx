@@ -38,12 +38,9 @@ export default function RootLayout({
       </head>
       <body>
         <TooltipProvider>
-          {/* Seeds localStorage with demo data on first visit.
-              Remove this wrapper when connecting to MySQL. */}
           <LocalDBProvider>{children}</LocalDBProvider>
         </TooltipProvider>
       </body>
     </html>
   );
 }
-

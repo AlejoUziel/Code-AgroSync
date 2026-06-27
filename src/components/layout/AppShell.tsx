@@ -4,6 +4,7 @@ import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import { cn } from "@/lib/utils";
+import { APP_COPYRIGHT, APP_VERSION } from "@/lib/app-info";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -19,7 +20,7 @@ export default function AppShell({
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--background)]">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       <div
         className={cn(
@@ -34,8 +35,10 @@ export default function AppShell({
           sidebarCollapsed={collapsed}
         />
         <main className="flex-1 p-5 lg:p-6 animate-fade-up">{children}</main>
+        <footer className="border-t border-[var(--border)] px-5 py-3 text-center text-[11px] text-muted-foreground lg:px-6">
+          {APP_COPYRIGHT} · Version {APP_VERSION}
+        </footer>
       </div>
     </div>
   );
 }
-

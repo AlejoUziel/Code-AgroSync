@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,10 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { logout, updateSessionProfile, type SettingsState } from "@/app/actions/auth";
+import { departamentoHome, departamentos } from "@/lib/departments";
+import { useSessionUser } from "@/hooks/useSessionUser";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface NavItem {
   label: string;
@@ -115,6 +119,12 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const user = useSessionUser();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsState, settingsAction, settingsPending] = useActionState<SettingsState, FormData>(
+    updateSessionProfile,
+    {}
+  );
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Administrativo: true,
     Operativo: true,
@@ -126,6 +136,19 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   };
 
   const isActive = (href: string) => pathname === href;
+  useEffect(() => {
+    if (settingsState.ok) {
+      window.setTimeout(() => window.location.reload(), 700);
+    }
+  }, [settingsState.ok]);
+
+  const visibleGroups = navGroups.filter((group) => {
+    if (!user) return true;
+    if (user.departamento === "AdministradorIT") return true;
+    if (user.departamento === "Tecnologico") return group.category === "Tecnológico";
+    return group.category === user.departamento;
+  });
+  const homeHref = departamentoHome(user?.departamento);
 
   return (
     <>
@@ -182,11 +205,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* Dashboard quick link */}
         <div className="px-3 pt-3 shrink-0">
           <Link
-            href="/"
+            href={homeHref}
             className={cn(
               "flex items-center gap-3 px-2.5 py-2 rounded-md text-sm transition-all duration-150 group",
               collapsed ? "justify-center" : "",
-              pathname === "/"
+              pathname === homeHref
                 ? "bg-primary/15 text-accent border-l-2 border-primary"
                 : "text-white/60 hover:text-white/90 hover:bg-card/5"
             )}
@@ -194,14 +217,14 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           >
             <LayoutDashboard size={15} className="shrink-0" />
             {!collapsed && (
-              <span className="font-medium-body text-xs truncate">Dashboard</span>
+              <span className="font-medium-body text-xs truncate">Inicio</span>
             )}
           </Link>
         </div>
 
         {/* Nav groups */}
         <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2 space-y-1">
-          {navGroups.map((group) => (
+          {visibleGroups.map((group) => (
             <div key={group.category} className="mb-1">
               {/* Category header */}
               <button
@@ -279,39 +302,107 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           >
             <Avatar className="h-7 w-7 shrink-0">
               <AvatarFallback className="bg-primary/20 text-accent text-[10px] font-heading">
-                JM
+                {user?.initials ?? "U"}
               </AvatarFallback>
             </Avatar>
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium-body text-white/80 truncate">
-                  Juan Martínez
+                  {user?.nombre ?? "Usuario"}
                 </p>
                 <p className="text-[10px] font-body text-white/40 truncate">
-                  Administrador
+                  {user ? `${user.departamentoLabel} · ${user.rol}` : "Cargando..."}
                 </p>
               </div>
             )}
             {!collapsed && (
               <div className="flex items-center gap-1">
                 <button
+                  onClick={() => setSettingsOpen(true)}
                   className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-card/5 transition-colors"
                   title="Configuración"
                 >
                   <Settings size={13} />
                 </button>
-                <button
-                  className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-card/5 transition-colors"
-                  title="Cerrar sesión"
-                >
-                  <LogOut size={13} />
-                </button>
+                <form action={logout}>
+                  <button
+                    className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-card/5 transition-colors"
+                    title="Cerrar sesión"
+                  >
+                    <LogOut size={13} />
+                  </button>
+                </form>
               </div>
             )}
           </div>
         </div>
       </aside>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md border-[var(--border)] bg-card p-0 overflow-hidden">
+          <DialogHeader className="px-5 pt-5 pb-4 border-b border-[var(--border)]">
+            <DialogTitle>Configuracion de Usuario</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Editar o cambiar usuario requiere validacion de Administrador General.
+            </p>
+          </DialogHeader>
+          <form action={settingsAction} className="space-y-4 px-5 py-4">
+            <label className="block">
+              <span className="text-xs font-medium-body text-[#1E1E1E]">Nombre visible</span>
+              <input
+                name="nombre"
+                defaultValue={user?.nombre ?? ""}
+                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium-body text-[#1E1E1E]">Departamento o acceso</span>
+              <select
+                name="departamento"
+                defaultValue={user?.departamento ?? "Administrativo"}
+                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
+              >
+                {departamentos.map((departamento) => (
+                  <option key={departamento.value} value={departamento.value}>
+                    {departamento.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium-body text-[#1E1E1E]">Clave Administrador General</span>
+              <input
+                name="adminPassword"
+                type="password"
+                required
+                placeholder="Clave requerida"
+                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
+              />
+            </label>
+            {settingsState.message && (
+              <div className={`rounded-lg border px-3 py-2 text-xs ${settingsState.ok ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-600"}`}>
+                {settingsState.message}
+              </div>
+            )}
+            <DialogFooter className="px-0 py-0 border-0 bg-transparent">
+              <button
+                type="submit"
+                formAction={logout}
+                className="px-4 py-2 rounded-lg border border-[var(--border)] text-xs text-[#6B7280] hover:text-[#1E1E1E]"
+              >
+                Cambiar usuario
+              </button>
+              <button
+                type="submit"
+                disabled={settingsPending}
+                className="px-5 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] disabled:opacity-60"
+              >
+                {settingsPending ? "Validando..." : "Guardar cambios"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
-

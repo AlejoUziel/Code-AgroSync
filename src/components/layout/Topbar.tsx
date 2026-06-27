@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Bell, Search, ChevronDown, Menu } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { useActionState, useState, useEffect, useCallback } from "react";
+import { Bell, Search, ChevronDown, Menu, LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { logout, updateSessionProfile, type SettingsState } from "@/app/actions/auth";
+import { departamentos } from "@/lib/departments";
 import { cn } from "@/lib/utils";
+import { useSessionUser } from "@/hooks/useSessionUser";
 
 // Exclusively the colors shared by the user at the start
 const brandColors = [
@@ -22,6 +25,15 @@ interface TopbarProps {
   sidebarCollapsed: boolean;
 }
 
+type NotificationItem = {
+  id: string;
+  tipo: string;
+  severidad: string;
+  mensaje: string;
+  resuelta: boolean;
+  creadaEn: string;
+};
+
 export default function Topbar({
   title,
   subtitle,
@@ -29,17 +41,18 @@ export default function Topbar({
   sidebarCollapsed,
 }: TopbarProps) {
   const [activePrimary, setActivePrimary] = useState("#8EBF24");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [settingsState, settingsAction, settingsPending] = useActionState<SettingsState, FormData>(
+    updateSessionProfile,
+    {}
+  );
+  const user = useSessionUser();
 
-  // Load saved theme on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("agrosync-active-primary");
-    if (saved) {
-      setActivePrimary(saved);
-      applyTheme(saved);
-    }
-  }, []);
-
-  const applyTheme = (colorHex: string) => {
+  const applyTheme = useCallback((colorHex: string) => {
     const root = document.documentElement;
     
     if (colorHex === "#8EBF24") {
@@ -128,7 +141,50 @@ export default function Topbar({
     root.style.setProperty("--ring", colorHex === "#1E1E1E" ? "#8EBF24" : colorHex);
     root.style.setProperty("--chart-1", colorHex === "#1E1E1E" ? "#8EBF24" : colorHex);
     root.style.setProperty("--sidebar-primary", colorHex === "#1E1E1E" ? "#8EBF24" : colorHex);
-  };
+  }, []);
+
+  // Load saved theme on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("agrosync-active-primary");
+    if (saved) {
+      setTimeout(() => {
+        setActivePrimary(saved);
+        applyTheme(saved);
+      }, 0);
+    }
+  }, [applyTheme]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadNotifications() {
+      try {
+        const response = await fetch("/api/notifications", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = (await response.json()) as { items: NotificationItem[]; unread: number };
+        if (!active) return;
+        setNotifications(data.items);
+        setUnread(data.unread);
+      } catch {
+        if (active) {
+          setNotifications([]);
+          setUnread(0);
+        }
+      }
+    }
+
+    void loadNotifications();
+    const interval = window.setInterval(loadNotifications, 30000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (settingsState.ok) {
+      window.setTimeout(() => window.location.reload(), 700);
+    }
+  }, [settingsState.ok]);
 
   const handleSelectColor = (colorHex: string) => {
     setActivePrimary(colorHex);
@@ -137,10 +193,11 @@ export default function Topbar({
   };
 
   return (
-    <header
-      className="h-14 flex items-center gap-4 px-5 bg-card/70 backdrop-blur-md border-b border-[#E2EDD6] sticky top-0 z-10"
-      style={{ borderBottomColor: "rgba(142,191,36,0.15)" }}
-    >
+    <>
+      <header
+        className="h-14 flex items-center gap-4 px-5 bg-card/70 backdrop-blur-md border-b border-[#E2EDD6] sticky top-0 z-10"
+        style={{ borderBottomColor: "rgba(142,191,36,0.15)" }}
+      >
       {/* Mobile menu toggle */}
       <button
         onClick={onMenuToggle}
@@ -200,25 +257,162 @@ export default function Topbar({
 
       {/* Notifications */}
       <div className="relative">
-        <button className="relative w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+        <button
+          onClick={() => {
+            setNotificationsOpen((open) => !open);
+            setUserOpen(false);
+          }}
+          className="relative w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+          title="Notificaciones"
+        >
           <Bell size={16} />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+          {unread > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />}
         </button>
+        {notificationsOpen && (
+          <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <p className="font-heading text-sm text-foreground">Notificaciones</p>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">{unread} nuevas</span>
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <p className="px-4 py-6 text-center text-xs text-muted-foreground">Sin notificaciones pendientes.</p>
+              ) : (
+                notifications.map((item) => (
+                  <div key={item.id} className="border-b border-border px-4 py-3 last:border-b-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium-body text-foreground">{item.tipo}</p>
+                      <span className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px]",
+                        item.severidad === "Alta"
+                          ? "bg-red-50 text-red-600"
+                          : item.severidad === "Media"
+                            ? "bg-amber-50 text-amber-600"
+                            : "bg-blue-50 text-blue-600"
+                      )}>
+                        {item.severidad}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.mensaje}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* User chip */}
-      <button className="hidden sm:flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-secondary transition-colors group">
-        <Avatar className="h-6 w-6">
-          <AvatarFallback className="bg-primary/15 text-primary text-[9px] font-heading">
-            JM
-          </AvatarFallback>
-        </Avatar>
-        <span className="text-xs font-body text-muted-foreground group-hover:text-foreground transition-colors">
-          Juan M.
-        </span>
-        <ChevronDown size={12} className="text-muted-foreground" />
-      </button>
-    </header>
+      <div className="relative hidden sm:block">
+        <button
+          onClick={() => {
+            setUserOpen((open) => !open);
+            setNotificationsOpen(false);
+          }}
+          className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-secondary transition-colors group"
+        >
+          <Avatar className="h-6 w-6">
+            <AvatarFallback className="bg-primary/15 text-primary text-[9px] font-heading">
+              {user?.initials ?? "U"}
+            </AvatarFallback>
+          </Avatar>
+          <span className="max-w-44 truncate text-xs font-body text-muted-foreground group-hover:text-foreground transition-colors">
+            {user?.nombre ?? "Usuario"}
+          </span>
+          <ChevronDown size={12} className="text-muted-foreground" />
+        </button>
+        {userOpen && (
+          <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+            <div className="border-b border-border px-4 py-3">
+              <p className="truncate text-xs font-medium-body text-foreground">{user?.nombre ?? "Usuario"}</p>
+              <p className="truncate text-[11px] text-muted-foreground">{user ? `${user.departamentoLabel} · ${user.rol}` : "Cargando..."}</p>
+            </div>
+            <button
+              onClick={() => {
+                setSettingsOpen(true);
+                setUserOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <Settings size={13} />
+              Configuracion
+            </button>
+            <form action={logout}>
+              <button className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs text-muted-foreground hover:bg-secondary hover:text-foreground">
+                <LogOut size={13} />
+                Cerrar sesion
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+      </header>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md border-[var(--border)] bg-card p-0 overflow-hidden">
+          <DialogHeader className="px-5 pt-5 pb-4 border-b border-[var(--border)]">
+            <DialogTitle>Configuracion de Usuario</DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Editar o cambiar usuario requiere validacion de Administrador General.
+            </p>
+          </DialogHeader>
+          <form action={settingsAction} className="space-y-4 px-5 py-4">
+            <label className="block">
+              <span className="text-xs font-medium-body text-[#1E1E1E]">Nombre visible</span>
+              <input
+                name="nombre"
+                defaultValue={user?.nombre ?? ""}
+                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium-body text-[#1E1E1E]">Departamento o acceso</span>
+              <select
+                name="departamento"
+                defaultValue={user?.departamento ?? "Administrativo"}
+                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
+              >
+                {departamentos.map((departamento) => (
+                  <option key={departamento.value} value={departamento.value}>
+                    {departamento.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium-body text-[#1E1E1E]">Clave Administrador General</span>
+              <input
+                name="adminPassword"
+                type="password"
+                required
+                placeholder="Clave requerida"
+                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
+              />
+            </label>
+            {settingsState.message && (
+              <div className={`rounded-lg border px-3 py-2 text-xs ${settingsState.ok ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-600"}`}>
+                {settingsState.message}
+              </div>
+            )}
+            <DialogFooter className="px-0 py-0 border-0 bg-transparent">
+              <button
+                type="submit"
+                formAction={logout}
+                className="px-4 py-2 rounded-lg border border-[var(--border)] text-xs text-[#6B7280] hover:text-[#1E1E1E]"
+              >
+                Cambiar usuario
+              </button>
+              <button
+                type="submit"
+                disabled={settingsPending}
+                className="px-5 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] disabled:opacity-60"
+              >
+                {settingsPending ? "Validando..." : "Guardar cambios"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
-

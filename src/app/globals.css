@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -60,25 +61,25 @@
 }
 
 :root {
-  --background: var(--background);
+  --background: #F9FBF6;
   --foreground: #1E1E1E;
   --card: #ffffff;
   --card-foreground: #1E1E1E;
   --popover: #ffffff;
   --popover-foreground: #1E1E1E;
-  --primary: var(--primary);
+  --primary: #8EBF24;
   --primary-foreground: #ffffff;
-  --secondary: var(--secondary);
+  --secondary: #F0F5EA;
   --secondary-foreground: #1E1E1E;
-  --muted: var(--secondary);
+  --muted: #F0F5EA;
   --muted-foreground: #6B7280;
-  --accent: var(--accent);
+  --accent: #BEE86B;
   --accent-foreground: #1E1E1E;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: var(--border);
-  --input: var(--border);
-  --ring: var(--primary);
-  --primary-dark: var(--primary-dark);
+  --border: #E2EDD6;
+  --input: #E2EDD6;
+  --ring: #8EBF24;
+  --primary-dark: #6E9A1A;
   --primary-darker: #5A7D15;
   --accent-muted: #D4EE9A;
   --chart-1: var(--primary);
@@ -149,6 +150,10 @@
     font-family: 'Outfit', sans-serif;
     font-weight: 700;
     letter-spacing: -0.02em;
+  }
+
+  .leaflet-container {
+    z-index: 0;
   }
 }
 

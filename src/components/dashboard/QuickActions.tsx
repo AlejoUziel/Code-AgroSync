@@ -1,57 +1,41 @@
 "use client";
 
-import { Plus, MapPin, Sprout, Package, Users, FileBarChart2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, FileBarChart2, MapPin, PackagePlus, Sprout, UserPlus } from "lucide-react";
 
 const actions = [
-  {
-    label: "Nueva Parcela",
-    icon: <MapPin size={16} className="text-primary" />,
-    href: "/ops/parcelas",
-  },
-  {
-    label: "Registrar Cultivo",
-    icon: <Sprout size={16} className="text-primary" />,
-    href: "/ops/cultivos",
-  },
-  {
-    label: "Registrar Cosecha",
-    icon: <Package size={16} className="text-primary" />,
-    href: "/ops/produccion",
-  },
-  {
-    label: "Nuevo Empleado",
-    icon: <Users size={16} className="text-primary" />,
-    href: "/admin/empleados",
-  },
-  {
-    label: "Generar Reporte",
-    icon: <FileBarChart2 size={16} className="text-primary" />,
-    href: "/tech/reportes",
-  },
+  { label: "Nueva parcela", desc: "Mapa Honduras", icon: MapPin, href: "/ops/parcelas" },
+  { label: "Registrar cultivo", desc: "Ciclo agricola", icon: Sprout, href: "/ops/cultivos" },
+  { label: "Registrar cosecha", desc: "Produccion", icon: PackagePlus, href: "/ops/produccion" },
+  { label: "Nuevo empleado", desc: "Cuadrilla", icon: UserPlus, href: "/admin/empleados" },
+  { label: "Generar reporte", desc: "PDF tecnico", icon: FileBarChart2, href: "/tech/reportes" },
 ];
 
 export default function QuickActions() {
   return (
-    <div className="bg-card rounded-xl border border-border p-4">
-      <h2 className="font-heading text-sm text-[#1E1E1E] mb-3">Acciones Rápidas</h2>
-      <div className="space-y-1.5">
+    <div className="rounded-xl border border-[var(--border)] bg-card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="font-heading text-sm text-[#1E1E1E]">Acciones rapidas</h2>
+        <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5 text-[10px] text-[var(--primary)]">5 activas</span>
+      </div>
+      <div className="space-y-2">
         {actions.map((action) => (
-          <button
+          <Link
             key={action.label}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-background border border-border hover:border-primary/40 hover:bg-secondary transition-all duration-150 group text-left"
+            href={action.href}
+            className="group flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--secondary)]"
           >
-            <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              {action.icon}
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--primary)]/10 text-[var(--primary)] transition-colors group-hover:bg-[var(--primary)]/20">
+              <action.icon size={16} />
             </div>
-            <span className="font-body text-xs text-[#1E1E1E]">{action.label}</span>
-            <Plus
-              size={12}
-              className="ml-auto text-[#C4C4C4] group-hover:text-primary transition-colors"
-            />
-          </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium-body text-[#1E1E1E]">{action.label}</p>
+              <p className="text-[10px] font-body text-[#9CA3AF]">{action.desc}</p>
+            </div>
+            <ChevronRight size={14} className="text-[#C4C4C4] transition-colors group-hover:text-[var(--primary)]" />
+          </Link>
         ))}
       </div>
     </div>
   );
 }
-
