@@ -115,7 +115,6 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const q = `%${(url.searchParams.get("q") ?? "").trim()}%`;
   const tab = url.searchParams.get("tab") === "empresas" ? "empresas" : "usuarios";
-  const session = await readSession();
 
   if (!isDatabaseConfigured) {
     return Response.json({ dbConfigured: false, items: [] });
@@ -140,11 +139,10 @@ export async function GET(request: Request) {
   const rows = await query<UserRow[]>(
     `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
      FROM usuarios
-     WHERE (:empresaId IS NULL OR empresa_id = :empresaId)
-       AND (nombre LIKE :q OR apellido LIKE :q OR email LIKE :q OR rol LIKE :q)
+     WHERE nombre LIKE :q OR apellido LIKE :q OR email LIKE :q OR rol LIKE :q
      ORDER BY nombre, apellido
      LIMIT 100`,
-    { q, empresaId: session?.empresaId ?? null }
+    { q }
   );
 
   return Response.json({

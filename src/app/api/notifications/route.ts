@@ -41,10 +41,9 @@ export async function GET() {
   const rows = await query<NotificationRow[]>(
     `SELECT id, tipo, severidad, mensaje, resuelta, creada_en
      FROM alertas
-     WHERE empresa_id = :empresaId
      ORDER BY creada_en DESC
      LIMIT 8`,
-    { empresaId: session.empresaId }
+    {}
   );
 
   const items = rows.map((row) => ({

@@ -104,12 +104,12 @@ function codeContext(resource: ResourceKey, item: ResourceRecord) {
   return "GEN";
 }
 
-async function nextResourceId(resource: ResourceKey, item: ResourceRecord, empresaId: string) {
+async function nextResourceId(resource: ResourceKey, item: ResourceRecord) {
   const base = `${resourcePrefixes[resource]}-${codeContext(resource, item)}`;
   const config = stores[resource];
   const rows = await query<(RowDataPacket & { id: string })[]>(
-    `SELECT id FROM ${config.table} WHERE empresa_id = :empresaId AND id LIKE :pattern ORDER BY id DESC LIMIT 1`,
-    { empresaId, pattern: `${base}-%` }
+    `SELECT id FROM ${config.table} WHERE id LIKE :pattern ORDER BY id DESC LIMIT 1`,
+    { pattern: `${base}-%` }
   );
   const last = rows[0]?.id ?? "";
   const next = (Number(last.match(/-(\d+)$/)?.[1] ?? 0) || 0) + 1;
@@ -120,7 +120,7 @@ const stores: Record<ResourceKey, StoreConfig> = {
   parcelas: {
     table: "parcelas",
     select:
-      "SELECT id, nombre, zona, hectareas, estado, ST_Y(centro) AS lat, ST_X(centro) AS lng FROM parcelas WHERE empresa_id = :empresaId ORDER BY nombre",
+      "SELECT id, nombre, zona, hectareas, estado, ST_Y(centro) AS lat, ST_X(centro) AS lng FROM parcelas ORDER BY nombre",
     insert: (item, empresaId, id) => {
       const { lat, lng } = validHondurasPoint(item);
       return {
@@ -168,10 +168,10 @@ const stores: Record<ResourceKey, StoreConfig> = {
   cultivos: {
     table: "cultivos",
     select:
-      "SELECT c.id, c.nombre, c.fecha_siembra, c.fecha_cosecha_estimada, c.etapa, c.estado, COALESCE(p.nombre, '') AS parcela FROM cultivos c LEFT JOIN parcelas p ON p.id = c.parcela_id WHERE c.empresa_id = :empresaId ORDER BY c.fecha_siembra DESC",
+      "SELECT c.id, c.nombre, c.fecha_siembra, c.fecha_cosecha_estimada, c.etapa, c.estado, COALESCE(p.nombre, '') AS parcela FROM cultivos c LEFT JOIN parcelas p ON p.id = c.parcela_id ORDER BY c.fecha_siembra DESC",
     insert: (item, empresaId, id) => ({
       sql:
-        "INSERT INTO cultivos (id, empresa_id, parcela_id, nombre, fecha_siembra, fecha_cosecha_estimada, etapa, estado) VALUES (:id, :empresaId, (SELECT id FROM parcelas WHERE empresa_id = :empresaId AND (id = :parcela OR nombre = :parcela) ORDER BY nombre LIMIT 1), :nombre, :fechaSiembra, :fechaCosechaEstimada, :etapa, :estado)",
+        "INSERT INTO cultivos (id, empresa_id, parcela_id, nombre, fecha_siembra, fecha_cosecha_estimada, etapa, estado) VALUES (:id, :empresaId, (SELECT id FROM parcelas WHERE id = :parcela OR nombre = :parcela ORDER BY nombre LIMIT 1), :nombre, :fechaSiembra, :fechaCosechaEstimada, :etapa, :estado)",
       values: { id, empresaId, parcela: text(item, "parcela"), nombre: text(item, "nombre"), fechaSiembra: text(item, "fechaSiembra"), fechaCosechaEstimada: dateOrNull(item, "fechaCosechaEstimada"), etapa: text(item, "etapa"), estado: text(item, "estado", "Nuevo") },
     }),
     update: (item, id) => ({
@@ -183,7 +183,7 @@ const stores: Record<ResourceKey, StoreConfig> = {
   inventario: {
     table: "inventario_items",
     select:
-      "SELECT id, nombre, categoria, stock, unidad, stock_minimo, costo_unitario_hnl, ubicacion FROM inventario_items WHERE empresa_id = :empresaId ORDER BY nombre",
+      "SELECT id, nombre, categoria, stock, unidad, stock_minimo, costo_unitario_hnl, ubicacion FROM inventario_items ORDER BY nombre",
     insert: (item, empresaId, id) => ({
       sql:
         "INSERT INTO inventario_items (id, empresa_id, nombre, categoria, stock, unidad, stock_minimo, costo_unitario_hnl, ubicacion) VALUES (:id, :empresaId, :nombre, :categoria, :stock, :unidad, :stockMinimo, :costoUnitario, :ubicacion)",
@@ -203,10 +203,10 @@ const stores: Record<ResourceKey, StoreConfig> = {
   cosechas: {
     table: "cosechas",
     select:
-      "SELECT h.id, h.fecha, h.toneladas, h.calidad, COALESCE(c.nombre, '') AS cultivo FROM cosechas h LEFT JOIN cultivos c ON c.id = h.cultivo_id WHERE h.empresa_id = :empresaId ORDER BY h.fecha DESC",
+      "SELECT h.id, h.fecha, h.toneladas, h.calidad, COALESCE(c.nombre, '') AS cultivo FROM cosechas h LEFT JOIN cultivos c ON c.id = h.cultivo_id ORDER BY h.fecha DESC",
     insert: (item, empresaId, id) => ({
       sql:
-        "INSERT INTO cosechas (id, empresa_id, cultivo_id, fecha, toneladas, calidad) VALUES (:id, :empresaId, (SELECT id FROM cultivos WHERE empresa_id = :empresaId AND (id = :cultivo OR nombre = :cultivo) ORDER BY fecha_siembra DESC LIMIT 1), :fecha, :toneladas, :calidad)",
+        "INSERT INTO cosechas (id, empresa_id, cultivo_id, fecha, toneladas, calidad) VALUES (:id, :empresaId, (SELECT id FROM cultivos WHERE id = :cultivo OR nombre = :cultivo ORDER BY fecha_siembra DESC LIMIT 1), :fecha, :toneladas, :calidad)",
       values: { id, empresaId, cultivo: text(item, "cultivo"), fecha: text(item, "fecha"), toneladas: num(item, "toneladas"), calidad: text(item, "calidad", "Estandar") },
     }),
     update: (item, id) => ({
@@ -217,7 +217,7 @@ const stores: Record<ResourceKey, StoreConfig> = {
   },
   empleados: {
     table: "empleados",
-    select: "SELECT id, nombre, cargo, salario_mensual_hnl, estado FROM empleados WHERE empresa_id = :empresaId ORDER BY nombre",
+    select: "SELECT id, nombre, cargo, salario_mensual_hnl, estado FROM empleados ORDER BY nombre",
     insert: (item, empresaId, id) => ({
       sql: "INSERT INTO empleados (id, empresa_id, nombre, cargo, salario_mensual_hnl, estado) VALUES (:id, :empresaId, :nombre, :cargo, :salarioMensual, :estado)",
       values: { id, empresaId, nombre: text(item, "nombre"), cargo: text(item, "cargo"), salarioMensual: num(item, "salarioMensual"), estado: text(item, "estado", "Activo") },
@@ -230,7 +230,7 @@ const stores: Record<ResourceKey, StoreConfig> = {
   },
   finanzas: {
     table: "finanzas_transacciones",
-    select: "SELECT id, concepto, categoria, tipo, monto_hnl, fecha FROM finanzas_transacciones WHERE empresa_id = :empresaId ORDER BY fecha DESC",
+    select: "SELECT id, concepto, categoria, tipo, monto_hnl, fecha FROM finanzas_transacciones ORDER BY fecha DESC",
     insert: (item, empresaId, id) => ({
       sql: "INSERT INTO finanzas_transacciones (id, empresa_id, concepto, categoria, tipo, monto_hnl, fecha) VALUES (:id, :empresaId, :concepto, :categoria, :tipo, :monto, :fecha)",
       values: { id, empresaId, concepto: text(item, "concepto"), categoria: text(item, "categoria"), tipo: text(item, "tipo", "Ingreso"), monto: num(item, "monto"), fecha: text(item, "fecha") },
@@ -243,7 +243,7 @@ const stores: Record<ResourceKey, StoreConfig> = {
   },
   alertas: {
     table: "alertas",
-    select: "SELECT id, tipo, severidad, mensaje, resuelta FROM alertas WHERE empresa_id = :empresaId ORDER BY creada_en DESC",
+    select: "SELECT id, tipo, severidad, mensaje, resuelta FROM alertas ORDER BY creada_en DESC",
     insert: (item, empresaId, id) => ({
       sql: "INSERT INTO alertas (id, empresa_id, tipo, severidad, mensaje, resuelta) VALUES (:id, :empresaId, :tipo, :severidad, :mensaje, :resuelta)",
       values: { id, empresaId, tipo: text(item, "tipo"), severidad: text(item, "severidad", "Media"), mensaje: text(item, "mensaje"), resuelta: text(item, "resuelta") === "Resuelta" },
@@ -257,7 +257,7 @@ const stores: Record<ResourceKey, StoreConfig> = {
   reportes: {
     table: "reportes",
     select:
-      "SELECT id, titulo, tipo, fecha, formato, destinatario, estado, descripcion FROM reportes WHERE empresa_id = :empresaId ORDER BY fecha DESC",
+      "SELECT id, titulo, tipo, fecha, formato, destinatario, estado, descripcion FROM reportes ORDER BY fecha DESC",
     insert: (item, empresaId, id) => ({
       sql:
         "INSERT INTO reportes (id, empresa_id, titulo, tipo, fecha, formato, destinatario, estado, descripcion) VALUES (:id, :empresaId, :titulo, :tipo, :fecha, :formato, :destinatario, :estado, :descripcion)",
@@ -312,7 +312,7 @@ async function empresaId() {
 export async function listResource(resource: ResourceKey) {
   if (!isDatabaseConfigured) return { items: [], dbConfigured: false };
   const config = stores[resource];
-  const rows = await query<DbRow[]>(config.select, { empresaId: await empresaId() });
+  const rows = await query<DbRow[]>(config.select, {});
   return { items: rows.map(config.mapRow), dbConfigured: true };
 }
 
@@ -320,7 +320,7 @@ export async function createResource(resource: ResourceKey, item: ResourceRecord
   if (!isDatabaseConfigured) throw new Error("DATABASE_URL no esta configurada.");
   const config = stores[resource];
   const currentEmpresaId = await empresaId();
-  const id = item.id || await nextResourceId(resource, item, currentEmpresaId);
+  const id = item.id || await nextResourceId(resource, item);
   const mutation = config.insert(item, currentEmpresaId, String(id));
   await query<ResultSetHeader>(mutation.sql, mutation.values);
   return { ...item, id: String(id) };
