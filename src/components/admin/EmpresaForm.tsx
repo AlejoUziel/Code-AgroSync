@@ -35,6 +35,9 @@ function validate(data: Partial<Empresa>): FormErrors {
     errors.email = "Formato de correo inválido.";
   }
   if (!data.telefono?.trim()) errors.telefono = "El teléfono es requerido.";
+  else if (!/^\+504\s?\d{4}-?\d{4}$/.test(data.telefono.trim())) {
+    errors.telefono = "Usa formato de Honduras: +504 2222-0000.";
+  }
   if (!data.ciudad?.trim()) errors.ciudad = "La ciudad es requerida.";
   if (!data.pais?.trim()) errors.pais = "El país es requerido.";
   if (!data.plan) errors.plan = "Selecciona un plan.";
@@ -50,9 +53,9 @@ const defaultForm: Partial<Empresa> = {
   telefono: "",
   direccion: "",
   ciudad: "",
-  pais: "",
-  plan: undefined,
-  estado: undefined,
+  pais: "Honduras",
+  plan: "Pro",
+  estado: "Activa",
   notas: "",
 };
 
@@ -60,7 +63,7 @@ const defaultForm: Partial<Empresa> = {
 interface EmpresaFormProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: Partial<Empresa>) => void;
+  onSave: (data: Partial<Empresa>) => void | Promise<void>;
   empresa?: Empresa | null; // null = create mode
 }
 
@@ -76,7 +79,9 @@ const estados: { value: EstadoEmpresa; label: string }[] = [
   { value: "Suspendida", label: "Suspendida" },
 ];
 
-// No static country array needed for global support
+const paises = [
+  "Honduras",
+].map((p) => ({ value: p, label: p }));
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function EmpresaForm({
@@ -94,9 +99,11 @@ export default function EmpresaForm({
   // Populate form when editing
   useEffect(() => {
     if (open) {
-      setForm(empresa ? { ...empresa } : { ...defaultForm });
-      setErrors({});
-      setTouched({});
+      setTimeout(() => {
+        setForm(empresa ? { ...empresa } : { ...defaultForm });
+        setErrors({});
+        setTouched({});
+      }, 0);
     }
   }, [open, empresa]);
 
@@ -118,10 +125,11 @@ export default function EmpresaForm({
     if (Object.keys(errs).length > 0) return;
 
     setSaving(true);
-    // Simulate async save (replace with fetch() for MySQL)
-    await new Promise((r) => setTimeout(r, 600));
-    onSave(form);
-    setSaving(false);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const err = (k: keyof Empresa) =>
@@ -129,12 +137,12 @@ export default function EmpresaForm({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl border-border bg-card p-0 overflow-hidden max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl border-[var(--border)] bg-card p-0 overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border shrink-0">
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-[var(--border)] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/12 flex items-center justify-center">
-              <Building2 size={16} className="text-primary" />
+            <div className="w-9 h-9 rounded-lg bg-[var(--primary)]/12 flex items-center justify-center">
+              <Building2 size={16} className="text-[var(--primary)]" />
             </div>
             <div>
               <DialogTitle className="font-heading text-base text-[#1E1E1E]">
@@ -192,7 +200,7 @@ export default function EmpresaForm({
               </Field>
               <Field label="Teléfono" required error={err("telefono")}>
                 <TextInput
-                  placeholder="+57 601 234 5678"
+                  placeholder="+504 2222-0000"
                   value={form.telefono ?? ""}
                   onChange={(e) => set("telefono", e.target.value)}
                   error={!!err("telefono")}
@@ -215,17 +223,17 @@ export default function EmpresaForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Ciudad" required error={err("ciudad")}>
                 <TextInput
-                  placeholder="Bogotá"
+                  placeholder="Tegucigalpa"
                   value={form.ciudad ?? ""}
                   onChange={(e) => set("ciudad", e.target.value)}
                   error={!!err("ciudad")}
                 />
               </Field>
               <Field label="País" required error={err("pais")}>
-                <TextInput
-                  placeholder="Ej. Honduras o España"
+                <SelectInput
                   value={form.pais ?? ""}
                   onChange={(e) => set("pais", e.target.value)}
+                  options={paises}
                   error={!!err("pais")}
                 />
               </Field>
@@ -255,8 +263,8 @@ export default function EmpresaForm({
 
             {/* Plan highlight */}
             {form.plan && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border">
-                <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--background)] border border-[var(--border)]">
+                <div className="w-2 h-2 rounded-full bg-[var(--primary)] shrink-0" />
                 <p className="font-body text-xs text-[#6B7280]">
                   {form.plan === "Starter" && "Plan Starter: hasta 5 usuarios, 10 parcelas."}
                   {form.plan === "Pro" && "Plan Pro: hasta 50 usuarios, 50 parcelas, reportes avanzados."}
@@ -278,18 +286,18 @@ export default function EmpresaForm({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 border-t border-border shrink-0 flex-row gap-2 justify-end bg-background">
+        <DialogFooter className="px-6 py-4 border-t border-[var(--border)] shrink-0 flex-row gap-2 justify-end bg-[var(--background)]">
           <button
             onClick={onClose}
             disabled={saving}
-            className="px-4 py-2 rounded-lg border border-border text-xs font-body text-[#6B7280] hover:border-primary/40 hover:text-[#1E1E1E] transition-all disabled:opacity-50"
+            className="px-4 py-2 rounded-lg border border-[var(--border)] text-xs font-body text-[#6B7280] hover:border-[var(--primary)]/40 hover:text-[#1E1E1E] transition-all disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-5 py-2 rounded-lg bg-primary text-white text-xs font-medium-body hover:bg-primary-dark transition-colors disabled:opacity-60 flex items-center gap-2 min-w-[120px] justify-center"
+            className="px-5 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors disabled:opacity-60 flex items-center gap-2 min-w-[120px] justify-center"
           >
             {saving ? (
               <>
@@ -305,4 +313,3 @@ export default function EmpresaForm({
     </Dialog>
   );
 }
-

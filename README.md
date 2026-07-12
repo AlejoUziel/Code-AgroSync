@@ -1,4 +1,12 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AgroSync
+
+Plataforma SaaS para gestion agricola en Honduras: empresas, usuarios, parcelas georreferenciadas, cultivos, cosechas, inventario, finanzas, alertas, reportes y comunicacion operativa.
+
+## Documentacion del proyecto
+
+- [Diccionario de datos](docs/diccionario-datos.md)
+- [Guia de despliegue](docs/deployment.md)
+- [Acceso MySQL local](docs/mysql-access.md)
 
 ## Getting Started
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus, type LucideIcon } from "lucide-react";
 
 interface KpiCardProps {
   label: string;
@@ -9,9 +9,34 @@ interface KpiCardProps {
   unit: string;
   change: string;
   trend: "up" | "down" | "neutral";
-  icon: React.ReactNode;
-  color: "green" | "neutral" | "warning" | "danger";
+  icon: LucideIcon;
+  detail: string;
+  progress: number;
+  tone: "green" | "blue" | "amber" | "dark";
 }
+
+const toneClass = {
+  green: {
+    icon: "bg-[var(--primary)]/12 text-[var(--primary)] ring-[var(--primary)]/15",
+    bar: "bg-[var(--primary)]",
+    glow: "bg-[var(--primary)]/18",
+  },
+  blue: {
+    icon: "bg-blue-50 text-blue-600 ring-blue-100",
+    bar: "bg-blue-500",
+    glow: "bg-blue-500/14",
+  },
+  amber: {
+    icon: "bg-amber-50 text-amber-600 ring-amber-100",
+    bar: "bg-amber-500",
+    glow: "bg-amber-500/16",
+  },
+  dark: {
+    icon: "bg-[#1E1E1E]/8 text-[#1E1E1E] ring-[#1E1E1E]/10",
+    bar: "bg-[#1E1E1E]",
+    glow: "bg-[#1E1E1E]/10",
+  },
+};
 
 export default function KpiCard({
   label,
@@ -19,39 +44,45 @@ export default function KpiCard({
   unit,
   change,
   trend,
-  icon,
-  color,
+  icon: Icon,
+  detail,
+  progress,
+  tone,
 }: KpiCardProps) {
-  const TrendIcon =
-    trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
+  const TrendIcon = trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : Minus;
+  const trendColor = trend === "down" ? "text-red-500" : trend === "neutral" ? "text-[#9CA3AF]" : "text-[var(--primary)]";
 
-  const trendColor =
-    trend === "up"
-      ? "text-primary"
-      : trend === "down"
-      ? "text-red-500"
-      : "text-[#9CA3AF]";
+  const toneStyle = toneClass[tone];
 
   return (
-    <div className="bg-card rounded-xl border border-border p-5 card-hover group cursor-default transition-all duration-200 hover:border-primary/30 hover:shadow-sm">
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-          {icon}
+    <div className="pro-card pro-card-hover group relative overflow-hidden rounded-2xl p-4">
+      <div className={cn("pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl transition-opacity group-hover:opacity-90", toneStyle.glow)} />
+      <div className="flex items-start justify-between gap-3">
+        <div className={cn("relative flex h-12 w-12 items-center justify-center rounded-2xl ring-1 transition-transform group-hover:scale-105", toneStyle.icon)}>
+          <Icon size={21} strokeWidth={2.2} />
+          <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-card bg-[var(--accent)]" />
         </div>
-        <div className={cn("flex items-center gap-1 text-xs font-body", trendColor)}>
-          <TrendIcon size={12} />
-          <span className="text-[10px]">{change}</span>
+        <div className={cn("flex items-center gap-1 rounded-full border border-[var(--border)] bg-white/80 px-2.5 py-1 text-[10px] font-medium-body shadow-[var(--shadow-xs)]", trendColor)}>
+          <TrendIcon size={12} strokeWidth={2.4} />
+          {change}
         </div>
       </div>
 
-      <p className="font-body text-xs text-[#9CA3AF] mb-1">{label}</p>
-      <div className="flex items-baseline gap-1.5">
-        <span className="font-heading text-2xl text-[#1E1E1E] leading-none">
-          {value}
-        </span>
-        <span className="font-body text-xs text-[#C4C4C4]">{unit}</span>
+      <div className="mt-4">
+        <p className="text-xs font-medium-body text-[var(--text-soft)]">{label}</p>
+        <div className="mt-1 flex items-baseline gap-1.5">
+          <span className="font-heading text-3xl leading-none text-[#171A16]">{value}</span>
+          <span className="text-xs font-body text-[#9CA3AF]">{unit}</span>
+        </div>
+        <p className="mt-2 text-[11px] font-body text-[#9CA3AF]">{detail}</p>
+      </div>
+
+      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[var(--surface-3)]">
+        <div
+          className={cn("h-full rounded-full transition-all", toneStyle.bar)}
+          style={{ width: `${Math.max(8, Math.min(progress, 100))}%` }}
+        />
       </div>
     </div>
   );
 }
-

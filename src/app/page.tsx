@@ -1,91 +1,62 @@
 "use client";
 
 import AppShell from "@/components/layout/AppShell";
-import KpiCard from "@/components/dashboard/KpiCard";
+import DashboardKpis from "@/components/dashboard/DashboardKpis";
 import AlertsWidget from "@/components/dashboard/AlertsWidget";
 import HarvestChart from "@/components/dashboard/HarvestChart";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
 import QuickActions from "@/components/dashboard/QuickActions";
 import RecentActivity from "@/components/dashboard/RecentActivity";
-import { Sprout, MapPin, Package, Users, TrendingUp } from "lucide-react";
-
-const kpis = [
-  {
-    label: "Parcelas Activas",
-    value: "47",
-    unit: "parcelas",
-    change: "+3 este mes",
-    trend: "up" as const,
-    icon: <MapPin size={18} className="text-primary" />,
-    color: "green" as const,
-  },
-  {
-    label: "Cultivos en Proceso",
-    value: "128",
-    unit: "cultivos",
-    change: "+12% vs año anterior",
-    trend: "up" as const,
-    icon: <Sprout size={18} className="text-primary" />,
-    color: "green" as const,
-  },
-  {
-    label: "Cosecha Este Mes",
-    value: "3,842",
-    unit: "toneladas",
-    change: "+8.3% vs meta",
-    trend: "up" as const,
-    icon: <Package size={18} className="text-primary" />,
-    color: "green" as const,
-  },
-  {
-    label: "Empleados Activos",
-    value: "214",
-    unit: "empleados",
-    change: "12 en campo hoy",
-    trend: "neutral" as const,
-    icon: <Users size={18} className="text-primary" />,
-    color: "neutral" as const,
-  },
-];
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 export default function DashboardPage() {
+  const hondurasDate = new Intl.DateTimeFormat("es-HN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Tegucigalpa",
+  }).format(new Date());
+
   return (
     <AppShell
       pageTitle="Dashboard"
-      pageSubtitle="Resumen operativo — Hoy, 6 de junio 2026"
+      pageSubtitle={`Resumen operativo Honduras - ${hondurasDate}`}
     >
       <div className="space-y-6">
-        {/* KPI Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {kpis.map((kpi, i) => (
-            <KpiCard key={i} {...kpi} />
-          ))}
-        </div>
+        <ErrorBoundary>
+          <DashboardKpis />
+        </ErrorBoundary>
 
-        {/* Main content grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Harvest chart - 2 cols */}
           <div className="lg:col-span-2">
-            <HarvestChart />
+            <ErrorBoundary>
+              <HarvestChart />
+            </ErrorBoundary>
           </div>
-          {/* Weather + alerts */}
           <div className="flex flex-col gap-4">
-            <WeatherWidget />
-            <AlertsWidget />
+            <ErrorBoundary>
+              <WeatherWidget />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <AlertsWidget />
+            </ErrorBoundary>
           </div>
         </div>
 
-        {/* Bottom row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
-            <RecentActivity />
+            <ErrorBoundary>
+              <RecentActivity />
+            </ErrorBoundary>
           </div>
           <div>
-            <QuickActions />
+            <ErrorBoundary>
+              <QuickActions />
+            </ErrorBoundary>
           </div>
         </div>
       </div>
     </AppShell>
   );
 }
-
