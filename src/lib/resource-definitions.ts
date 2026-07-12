@@ -95,6 +95,9 @@ export const resourceDefinitions: Record<ResourceKey, ResourceDefinition> = {
       { id: "P-003", nombre: "Sur-03", zona: "Choluteca", cultivo: "Sorgo", hectareas: 61.2, lat: 13.31, lng: -87.18, estado: "Activa" },
       { id: "P-004", nombre: "Atlantico-04", zona: "Atlantida", cultivo: "Palma", hectareas: 54.1, lat: 15.78, lng: -86.79, estado: "Activa" },
       { id: "P-005", nombre: "Occidente-01", zona: "Copan", cultivo: "Cafe", hectareas: 33.7, lat: 14.84, lng: -89.15, estado: "En Descanso" },
+      { id: "P-006", nombre: "Roatan-West", zona: "Islas de la Bahia", cultivo: "Cocos", hectareas: 12.5, lat: 16.305, lng: -86.591, estado: "Activa" },
+      { id: "P-007", nombre: "Roatan-Sandy", zona: "Islas de la Bahia", cultivo: "Cacao", hectareas: 8.4, lat: 16.331, lng: -86.558, estado: "Activa" },
+      { id: "P-008", nombre: "Roatan-Oak", zona: "Islas de la Bahia", cultivo: "Vainilla", hectareas: 5.2, lat: 16.391, lng: -86.368, estado: "En Preparacion" },
     ],
   },
   cultivos: {
@@ -118,6 +121,9 @@ export const resourceDefinitions: Record<ResourceKey, ResourceDefinition> = {
       { id: "C-001", nombre: "Maiz Amarillo H-507", parcela: "Norte-08", fechaSiembra: "2026-01-15", fechaCosechaEstimada: "2026-07-20", etapa: "Floracion", estado: "En Progreso" },
       { id: "C-002", nombre: "Frijol Rojo", parcela: "Valle-12", fechaSiembra: "2026-02-01", fechaCosechaEstimada: "2026-06-05", etapa: "Llenado", estado: "Alerta" },
       { id: "C-003", nombre: "Cafe Lempira", parcela: "Occidente-01", fechaSiembra: "2026-03-10", fechaCosechaEstimada: "2026-11-12", etapa: "Vegetativa", estado: "En Progreso" },
+      { id: "C-004", nombre: "Coco Caribeño", parcela: "Roatan-West", fechaSiembra: "2024-05-10", fechaCosechaEstimada: "2026-09-15", etapa: "Llenado", estado: "En Progreso" },
+      { id: "C-005", nombre: "Cacao Criollo", parcela: "Roatan-Sandy", fechaSiembra: "2025-06-20", fechaCosechaEstimada: "2026-12-10", etapa: "Floracion", estado: "En Progreso" },
+      { id: "C-006", nombre: "Vainilla Planifolia", parcela: "Roatan-Oak", fechaSiembra: "2026-01-10", fechaCosechaEstimada: "2027-02-15", etapa: "Vegetativa", estado: "Nuevo" },
     ],
   },
   inventario: {

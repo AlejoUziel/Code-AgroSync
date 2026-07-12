@@ -149,12 +149,20 @@ async function findUser(email: string) {
 
 async function ensureLoginSecurityColumns() {
   if (!isDatabaseConfigured) return;
-  await query<ResultSetHeader>(
-    "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS intentos_fallidos INT NOT NULL DEFAULT 0 AFTER password_hash"
-  );
-  await query<ResultSetHeader>(
-    "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bloqueado_en DATETIME NULL AFTER intentos_fallidos"
-  );
+  try {
+    await query<ResultSetHeader>(
+      "ALTER TABLE usuarios ADD COLUMN intentos_fallidos INT NOT NULL DEFAULT 0 AFTER password_hash"
+    );
+  } catch {
+    // Ignorar si la columna ya existe
+  }
+  try {
+    await query<ResultSetHeader>(
+      "ALTER TABLE usuarios ADD COLUMN bloqueado_en DATETIME NULL AFTER intentos_fallidos"
+    );
+  } catch {
+    // Ignorar si la columna ya existe
+  }
 }
 
 async function createSupportAlertForBlockedUser(user: AuthUserRow, attempts: number) {

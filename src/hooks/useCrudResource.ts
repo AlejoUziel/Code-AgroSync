@@ -50,15 +50,27 @@ export function useCrudResource(resourceKey: ResourceKey) {
       if (data.dbConfigured) {
         setRecords(normalizeRecords(resourceKey, data.items));
       } else {
-        setRecords([]);
+        const local = localStorage.getItem(storageKey);
+        if (local) {
+          setRecords(JSON.parse(local));
+        } else {
+          const seeds = normalizeRecords(resourceKey, definition.seed);
+          localStorage.setItem(storageKey, JSON.stringify(seeds));
+          setRecords(seeds);
+        }
       }
     } catch {
-      setRecords([]);
+      const local = localStorage.getItem(storageKey);
+      if (local) {
+        setRecords(JSON.parse(local));
+      } else {
+        setRecords(normalizeRecords(resourceKey, definition.seed));
+      }
       setDbConfigured(false);
     } finally {
       setLoading(false);
     }
-  }, [resourceKey]);
+  }, [resourceKey, storageKey, definition.seed]);
 
   useEffect(() => {
     void load();

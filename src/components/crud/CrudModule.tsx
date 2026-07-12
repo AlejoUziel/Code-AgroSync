@@ -2,11 +2,13 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
-import { AlertTriangle, Bell, Download, Edit2, Filter, Landmark, Mail, MapPin, MessageCircle, Package, Plus, Search, Sprout, Trash2, UserSquare2, WarehouseIcon, FileBarChart2 } from "lucide-react";
+import { AlertTriangle, Bell, Download, Edit2, Filter, Landmark, Mail, MapPin, MessageCircle, Package, Plus, Search, Sprout, Trash2, UserSquare2, WarehouseIcon, FileBarChart2, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCrudResource } from "@/hooks/useCrudResource";
 import { HONDURAS_BOUNDS, HONDURAS_CENTER, calculateInventoryStatus, isInsideHonduras, resourceDefinitions, type ResourceField, type ResourceKey, type ResourceRecord } from "@/lib/resource-definitions";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useModernAlert } from "@/components/shared/ModernAlertDialog";
 
 const ParcelaLocationPicker = dynamic(() => import("@/components/maps/ParcelaLocationPicker"), {
   ssr: false,
@@ -81,19 +83,21 @@ function FieldInput({
   value,
   onChange,
   options,
+  disabled,
 }: {
   field: ResourceField;
   value: ResourceRecord[string];
   onChange: (value: string | number) => void;
   options?: string[];
+  disabled?: boolean;
 }) {
   const base =
-    "pro-focus mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white/85 px-3 text-sm outline-none";
+    "pro-focus mt-1 h-10 w-full rounded-xl border border-[var(--border)] bg-white/85 px-3 text-sm outline-none disabled:bg-[var(--background)] disabled:text-muted-foreground/60 disabled:cursor-not-allowed";
 
   const selectOptions = options ?? field.options;
   if (field.type === "select" || selectOptions?.length) {
     return (
-      <select value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} className={base}>
+      <select value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} className={base} disabled={disabled}>
         {!field.required && <option value="">Sin seleccionar</option>}
         {field.required && !String(value ?? "") && <option value="">Seleccionar...</option>}
         {selectOptions?.map((option) => (
@@ -111,7 +115,8 @@ function FieldInput({
         value={String(value ?? "")}
         onChange={(event) => onChange(event.target.value)}
         rows={3}
-        className="pro-focus mt-1 w-full rounded-xl border border-[var(--border)] bg-white/85 px-3 py-2 text-sm outline-none"
+        className="pro-focus mt-1 w-full rounded-xl border border-[var(--border)] bg-white/85 px-3 py-2 text-sm outline-none disabled:bg-[var(--background)] disabled:text-muted-foreground/60 disabled:cursor-not-allowed"
+        disabled={disabled}
       />
     );
   }
@@ -123,6 +128,7 @@ function FieldInput({
       value={String(value ?? "")}
       onChange={(event) => onChange(field.type === "number" ? Number(event.target.value) : event.target.value)}
       className={base}
+      disabled={disabled}
     />
   );
 }
@@ -138,6 +144,8 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<ResourceRecord>(() => emptyRecord(definition.fields));
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const { alert: modernAlert, confirm: modernConfirm, prompt: modernPrompt } = useModernAlert();
 
   const statusOptions = useMemo(() => {
     if (!definition.statusKey) return [];
@@ -214,6 +222,8 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
       }
     }
 
+    setSubmitting(true);
+    setError("");
     try {
       const payload = resourceKey === "inventario" ? { ...form, estado: inventoryStatus } : form;
       if (editing) await update(editing.id, payload);
@@ -221,62 +231,124 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
       setOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const deleteRecord = async (record: ResourceRecord) => {
-    const ok = window.confirm(`Eliminar ${definition.entityLabel.toLowerCase()} "${record.nombre ?? record.concepto ?? record.id}"?`);
+    const ok = await modernConfirm({
+      title: `Eliminar ${definition.entityLabel.toLowerCase()}`,
+      message: `¿Estás seguro que deseas eliminar el registro "${record.nombre ?? record.concepto ?? record.id}"? Esta acción no se puede deshacer.`,
+      type: "warning",
+      confirmText: "Eliminar",
+      cancelText: "Cancelar"
+    });
     if (!ok) return;
-    await remove(record.id);
+
+    setSubmitting(true);
+    try {
+      await remove(record.id);
+    } catch (err) {
+      await modernAlert({
+        title: "Error al eliminar",
+        message: err instanceof Error ? err.message : "No se pudo completar la operación.",
+        type: "error"
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const sendCommunication = async (record: ResourceRecord, canal: "Correo" | "WhatsApp") => {
-    const destino =
-      canal === "WhatsApp"
-        ? window.prompt("Numero WhatsApp con codigo de pais:", "+504")
-        : window.prompt("Correo destino:", String(record.destinatario ?? ""));
-    if (!destino) return;
+    let destino: string | null = "";
+    if (canal === "WhatsApp") {
+      destino = await modernPrompt({
+        title: "Enviar WhatsApp",
+        message: "Número de WhatsApp con código de país:",
+        defaultValue: "+504",
+        placeholder: "+504 9999-0000"
+      });
+    } else {
+      destino = await modernPrompt({
+        title: "Enviar Correo",
+        message: "Dirección de correo electrónico de destino:",
+        defaultValue: String(record.destinatario ?? ""),
+        placeholder: "usuario@ejemplo.com"
+      });
+    }
+    
+    if (destino === null) return;
+    destino = destino.trim();
 
-    const asunto =
-      resourceKey === "reportes"
-        ? `Reporte AgroSync: ${record.titulo ?? record.id}`
-        : `Alerta AgroSync: ${record.tipo ?? record.id}`;
-    const mensaje =
-      resourceKey === "reportes"
-        ? `Adjunto/enlace del reporte ${record.titulo ?? record.id}. Descarga: ${location.origin}/api/reports/${record.id}/pdf`
-        : `Notificacion AgroSync: ${record.mensaje ?? record.id}`;
-
-    const response = await fetch("/api/communications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recurso: resourceKey, recursoId: record.id, canal, destino, asunto, mensaje }),
-    });
-    const result = (await response.json().catch(() => ({}))) as {
-      deliveryMode?: "smtp" | "mailto" | "whatsapp";
-      link?: string;
-      message?: string;
-      sent?: boolean;
-    };
-
-    if (!response.ok) {
-      if (result.link && canal === "Correo") {
-        window.location.href = result.link;
-      }
-      window.alert(result.message ?? "No se pudo enviar la comunicacion.");
+    if (!destino) {
+      await modernAlert({
+        title: "Dato requerido",
+        message: "Debes introducir un destino válido.",
+        type: "warning"
+      });
       return;
     }
 
-    if (result.deliveryMode === "smtp" && result.sent) {
-      window.alert("Correo enviado correctamente.");
-      return;
-    }
+    setSubmitting(true);
+    try {
+      const asunto =
+        resourceKey === "reportes"
+          ? `Reporte AgroSync: ${record.titulo ?? record.id}`
+          : `Alerta AgroSync: ${record.tipo ?? record.id}`;
+      const mensaje =
+        resourceKey === "reportes"
+          ? `Adjunto/enlace del reporte ${record.titulo ?? record.id}. Descarga: ${location.origin}/api/reports/${record.id}/pdf`
+          : `Notificacion AgroSync: ${record.mensaje ?? record.id}`;
 
-    if (result.link) {
-      if (canal === "Correo") {
-        window.location.href = result.link;
-      } else {
-        window.open(result.link, "_blank", "noopener,noreferrer");
+      const response = await fetch("/api/communications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recurso: resourceKey, recursoId: record.id, canal, destino, asunto, mensaje }),
+      });
+      const result = (await response.json().catch(() => ({}))) as {
+        deliveryMode?: "smtp" | "mailto" | "whatsapp";
+        link?: string;
+        message?: string;
+        sent?: boolean;
+      };
+
+      if (!response.ok) {
+        if (result.link && canal === "Correo") {
+          window.location.href = result.link;
+        }
+        await modernAlert({
+          title: "Error de comunicación",
+          message: result.message ?? "No se pudo enviar la comunicacion.",
+          type: "error"
+        });
+        return;
       }
+
+      if (result.deliveryMode === "smtp" && result.sent) {
+        await modernAlert({
+          title: "Envío exitoso",
+          message: "Correo enviado correctamente.",
+          type: "success"
+        });
+        return;
+      }
+
+      if (result.link) {
+        if (canal === "Correo") {
+          window.location.href = result.link;
+        } else {
+          window.open(result.link, "_blank", "noopener,noreferrer");
+        }
+      }
+    } catch {
+      await modernAlert({
+        title: "Error inesperado",
+        message: "No se pudo procesar el envío de la comunicación.",
+        type: "error"
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -314,7 +386,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
           {definition.statusKey && (
             <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white/70 px-3 py-2 text-xs text-[#6B7280]">
               <Filter size={13} />
-              <select value={status} onChange={(event) => setStatus(event.target.value)} className="bg-transparent outline-none">
+              <select value={status} onChange={(event) => setStatus(event.target.value)} className="bg-transparent outline-none cursor-pointer">
                 <option value="">Todos</option>
                 {statusOptions.map((option) => (
                   <option key={option} value={option}>
@@ -327,7 +399,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
 
           <button
             onClick={openCreate}
-            className="ml-auto flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-medium-body text-white shadow-[0_10px_24px_rgba(142,191,36,0.22)] transition-colors hover:bg-[var(--primary-dark)]"
+            className="ml-auto flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-medium-body text-white shadow-[0_10px_24px_rgba(142,191,36,0.22)] transition-colors hover:bg-[var(--primary-dark)] cursor-pointer"
           >
             <Plus size={13} /> Agregar {definition.entityLabel}
           </button>
@@ -338,7 +410,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
             <thead>
               <tr className="border-b border-[var(--border)]">
                 {["ID", ...definition.tableFields.map((key) => definition.fields.find((field) => field.key === key)?.label ?? key), ""].map((heading) => (
-                      <th key={heading} className="bg-[var(--surface-2)]/60 text-left px-4 py-3 font-heading text-[10px] text-[#7A8678] uppercase tracking-wider whitespace-nowrap">
+                  <th key={heading} className="bg-[var(--surface-2)]/60 text-left px-4 py-3 font-heading text-[10px] text-[#7A8678] uppercase tracking-wider whitespace-nowrap">
                     {heading}
                   </th>
                 ))}
@@ -370,37 +442,115 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
                     );
                   })}
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEdit(record)} className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors" title="Editar">
-                        <Edit2 size={13} />
-                      </button>
+                    <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              onClick={() => openEdit(record)}
+                              disabled={submitting}
+                              className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer disabled:opacity-40"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                          }
+                        />
+                        <TooltipContent side="top" className="bg-[#1E1E1E] text-white border border-white/10 text-[10px] px-2 py-1 rounded shadow-md">
+                          Editar
+                        </TooltipContent>
+                      </Tooltip>
+
                       {resourceKey === "reportes" && (
                         <>
-                          <a
-                            href={`/api/reports/${record.id}/pdf`}
-                            className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors"
-                            title="Descargar PDF"
-                          >
-                            <Download size={13} />
-                          </a>
-                          <button onClick={() => void sendCommunication(record, "Correo")} className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors" title="Enviar por correo">
-                            <Mail size={13} />
-                          </button>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <a
+                                  href={`/api/reports/${record.id}/pdf`}
+                                  className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer"
+                                >
+                                  <Download size={13} />
+                                </a>
+                              }
+                            />
+                            <TooltipContent side="top" className="bg-[#1E1E1E] text-white border border-white/10 text-[10px] px-2 py-1 rounded shadow-md">
+                              Descargar PDF
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  onClick={() => void sendCommunication(record, "Correo")}
+                                  disabled={submitting}
+                                  className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer disabled:opacity-40"
+                                >
+                                  <Mail size={13} />
+                                </button>
+                              }
+                            />
+                            <TooltipContent side="top" className="bg-[#1E1E1E] text-white border border-white/10 text-[10px] px-2 py-1 rounded shadow-md">
+                              Enviar correo
+                            </TooltipContent>
+                          </Tooltip>
                         </>
                       )}
+
                       {resourceKey === "alertas" && (
                         <>
-                          <button onClick={() => void sendCommunication(record, "Correo")} className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors" title="Enviar por correo">
-                            <Mail size={13} />
-                          </button>
-                          <button onClick={() => void sendCommunication(record, "WhatsApp")} className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors" title="Enviar por WhatsApp">
-                            <MessageCircle size={13} />
-                          </button>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  onClick={() => void sendCommunication(record, "Correo")}
+                                  disabled={submitting}
+                                  className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer disabled:opacity-40"
+                                >
+                                  <Mail size={13} />
+                                </button>
+                              }
+                            />
+                            <TooltipContent side="top" className="bg-[#1E1E1E] text-white border border-white/10 text-[10px] px-2 py-1 rounded shadow-md">
+                              Enviar correo
+                            </TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  onClick={() => void sendCommunication(record, "WhatsApp")}
+                                  disabled={submitting}
+                                  className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer disabled:opacity-40"
+                                >
+                                  <MessageCircle size={13} />
+                                </button>
+                              }
+                            />
+                            <TooltipContent side="top" className="bg-[#1E1E1E] text-white border border-white/10 text-[10px] px-2 py-1 rounded shadow-md">
+                              Enviar WhatsApp
+                            </TooltipContent>
+                          </Tooltip>
                         </>
                       )}
-                      <button onClick={() => void deleteRecord(record)} className="p-1.5 rounded-md hover:bg-red-50 text-[#9CA3AF] hover:text-red-500 transition-colors" title="Eliminar">
-                        <Trash2 size={13} />
-                      </button>
+
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              onClick={() => void deleteRecord(record)}
+                              disabled={submitting}
+                              className="p-1.5 rounded-md hover:bg-red-50 text-[#9CA3AF] hover:text-red-500 transition-colors cursor-pointer disabled:opacity-40"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          }
+                        />
+                        <TooltipContent side="top" className="bg-[#1E1E1E] text-white border border-white/10 text-[10px] px-2 py-1 rounded shadow-md">
+                          Eliminar
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </td>
                 </tr>
@@ -417,9 +567,9 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
         </div>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-2xl border-[var(--border)] bg-card p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-5 pb-4 border-b border-[var(--border)]">
+      <Dialog open={open} onOpenChange={(v) => { if (!submitting) setOpen(v); }}>
+        <DialogContent className="sm:max-w-2xl border-[var(--border)] bg-card p-0 overflow-hidden shadow-2xl" showCloseButton={!submitting}>
+          <DialogHeader className="px-6 pt-5 pb-4 border-b border-[var(--border)] bg-white/20">
             <DialogTitle>{editing ? "Editar" : "Nuevo"} {definition.entityLabel}</DialogTitle>
           </DialogHeader>
           <div className="grid min-w-0 grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2">
@@ -427,11 +577,11 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
               <ParcelaLocationPicker
                 lat={Number(form.lat)}
                 lng={Number(form.lng)}
-                onSelect={(lat, lng) => setForm((current) => ({ ...current, lat, lng }))}
+                onSelect={(lat, lng) => !submitting && setForm((current) => ({ ...current, lat, lng }))}
               />
             )}
             {visibleFields.map((field) => (
-              <label key={field.key} className={field.type === "textarea" ? "sm:col-span-2" : ""}>
+              <label key={field.key} className={field.type === "textarea" ? "sm:col-span-2 block" : "block"}>
                 <span className="font-medium-body text-xs text-[#1E1E1E]">
                   {field.label}{field.required ? " *" : ""}
                 </span>
@@ -439,6 +589,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
                   field={field}
                   value={form[field.key]}
                   options={relationOptions[field.key]}
+                  disabled={submitting}
                   onChange={(value) => setForm((current) => ({ ...current, [field.key]: value }))}
                 />
               </label>
@@ -452,18 +603,33 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
               </div>
             )}
             {error && (
-              <div className="sm:col-span-2 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+              <div className="sm:col-span-2 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 animate-fade-up">
                 <AlertTriangle size={13} />
                 {error}
               </div>
             )}
           </div>
           <DialogFooter className="px-6 py-4 border-t border-[var(--border)] bg-[var(--background)]">
-            <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-lg border border-[var(--border)] text-xs text-[#6B7280] hover:text-[#1E1E1E]">
+            <button
+              onClick={() => setOpen(false)}
+              disabled={submitting}
+              className="px-4 py-2 rounded-lg border border-[var(--border)] text-xs text-[#6B7280] hover:text-[#1E1E1E] bg-white transition-all disabled:opacity-50 cursor-pointer"
+            >
               Cancelar
             </button>
-            <button onClick={() => void save()} className="px-5 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)]">
-              Guardar
+            <button
+              onClick={() => void save()}
+              disabled={submitting}
+              className="px-5 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] disabled:opacity-60 flex items-center gap-1.5 cursor-pointer"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar"
+              )}
             </button>
           </DialogFooter>
         </DialogContent>

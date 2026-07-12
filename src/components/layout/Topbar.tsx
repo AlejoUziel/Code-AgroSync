@@ -1,11 +1,12 @@
 "use client";
 
 import { useActionState, useState, useEffect, useCallback } from "react";
-import { Bell, Search, ChevronDown, Menu, LogOut, Settings } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { Bell, Search, ChevronDown, Menu, LogOut, Settings, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { logout, updateSessionProfile, type SettingsState } from "@/app/actions/auth";
-import { departamentos } from "@/lib/departments";
+import { departamentos, departamentoHome } from "@/lib/departments";
 import { cn } from "@/lib/utils";
 import { useSessionUser } from "@/hooks/useSessionUser";
 
@@ -40,6 +41,8 @@ export default function Topbar({
   onMenuToggle,
   sidebarCollapsed,
 }: TopbarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [activePrimary, setActivePrimary] = useState("#8EBF24");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -52,6 +55,9 @@ export default function Topbar({
   );
   const user = useSessionUser();
 
+  const homeHref = departamentoHome(user?.departamento);
+  const showBackButton = pathname !== homeHref && pathname !== "/";
+  
   const applyTheme = useCallback((colorHex: string) => {
     const root = document.documentElement;
     
@@ -218,13 +224,25 @@ export default function Topbar({
       )}
 
       {/* Title */}
-      <div className="flex-1 min-w-0">
-        <h1 className="font-heading text-[17px] text-foreground truncate leading-tight">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="font-body text-xs text-muted-foreground truncate">{subtitle}</p>
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        {showBackButton && (
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-foreground/50 hover:text-foreground hover:bg-[var(--secondary)] transition-all shrink-0 cursor-pointer"
+            title="Volver"
+          >
+            <ArrowLeft size={14} />
+          </button>
         )}
+        <div className="min-w-0">
+          <h1 className="font-heading text-[17px] text-foreground truncate leading-tight">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="font-body text-xs text-muted-foreground truncate">{subtitle}</p>
+          )}
+        </div>
       </div>
 
       {/* Search */}

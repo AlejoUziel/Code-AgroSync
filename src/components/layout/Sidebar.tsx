@@ -31,6 +31,7 @@ import { logout, updateSessionProfile, type SettingsState } from "@/app/actions/
 import { departamentoHome, departamentos } from "@/lib/departments";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface NavItem {
   label: string;
@@ -118,6 +119,18 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
+function SidebarTooltip({ children, label, enabled }: { children: React.ReactElement; label: string; enabled: boolean }) {
+  if (!enabled) return children;
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side="right" className="bg-[#1E1E1E] text-white border border-white/10 text-xs px-2.5 py-1.5 rounded-lg shadow-lg">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const user = useSessionUser();
@@ -191,7 +204,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {!collapsed && (
             <button
               onClick={onToggle}
-              className="ml-auto text-white/40 hover:text-white/80 transition-colors"
+              className="ml-auto text-white/40 hover:text-white/80 transition-colors cursor-pointer"
               aria-label="Collapse sidebar"
             >
               <X size={15} />
@@ -200,7 +213,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {collapsed && (
             <button
               onClick={onToggle}
-              className="text-white/40 hover:text-white/80 transition-colors"
+              className="text-white/40 hover:text-white/80 transition-colors cursor-pointer"
               aria-label="Expand sidebar"
             >
               <Menu size={15} />
@@ -210,22 +223,23 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         {/* Dashboard quick link */}
         <div className="px-3 pt-3 shrink-0">
-          <Link
-            href={homeHref}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group",
-              collapsed ? "justify-center" : "",
-              pathname === homeHref
-                ? "bg-primary/16 text-accent ring-1 ring-primary/20 shadow-[0_10px_24px_rgba(142,191,36,0.08)]"
-                : "text-white/62 hover:text-white/90 hover:bg-white/6"
-            )}
-            title={collapsed ? "Dashboard" : undefined}
-          >
-            <LayoutDashboard size={15} className="shrink-0" />
-            {!collapsed && (
-              <span className="font-medium-body text-xs truncate">Inicio</span>
-            )}
-          </Link>
+          <SidebarTooltip label="Inicio" enabled={collapsed}>
+            <Link
+              href={homeHref}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group",
+                collapsed ? "justify-center" : "",
+                pathname === homeHref
+                  ? "bg-primary/16 text-accent ring-1 ring-primary/20 shadow-[0_10px_24px_rgba(142,191,36,0.08)]"
+                  : "text-white/62 hover:text-white/90 hover:bg-white/6"
+              )}
+            >
+              <LayoutDashboard size={15} className="shrink-0" />
+              {!collapsed && (
+                <span className="font-medium-body text-xs truncate">Inicio</span>
+              )}
+            </Link>
+          </SidebarTooltip>
         </div>
 
         {/* Nav groups */}
@@ -233,64 +247,65 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {visibleGroups.map((group) => (
             <div key={group.category} className="mb-1">
               {/* Category header */}
-              <button
-                onClick={() => toggleGroup(group.category)}
-                className={cn(
-                  "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors",
-                  "text-white/30 hover:text-white/60",
-                  collapsed ? "justify-center" : "justify-between"
-                )}
-                title={collapsed ? group.category : undefined}
-              >
-                {!collapsed && (
-                  <span className="font-heading text-[10px] uppercase tracking-widest truncate">
-                    {group.category}
-                  </span>
-                )}
-                {collapsed ? (
-                  <div className="w-4 h-px bg-card/20" />
-                ) : (
-                  <span className="transition-transform duration-200">
-                    {openGroups[group.category] ? (
-                      <ChevronDown size={12} />
-                    ) : (
-                      <ChevronRight size={12} />
-                    )}
-                  </span>
-                )}
-              </button>
+              <SidebarTooltip label={group.category} enabled={collapsed}>
+                <button
+                  onClick={() => toggleGroup(group.category)}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer",
+                    "text-white/30 hover:text-white/60",
+                    collapsed ? "justify-center" : "justify-between"
+                  )}
+                >
+                  {!collapsed && (
+                    <span className="font-heading text-[10px] uppercase tracking-widest truncate">
+                      {group.category}
+                    </span>
+                  )}
+                  {collapsed ? (
+                    <div className="w-4 h-px bg-card/20" />
+                  ) : (
+                    <span className="transition-transform duration-200">
+                      {openGroups[group.category] ? (
+                        <ChevronDown size={12} />
+                      ) : (
+                        <ChevronRight size={12} />
+                      )}
+                    </span>
+                  )}
+                </button>
+              </SidebarTooltip>
 
               {/* Nav items */}
               {(collapsed || openGroups[group.category]) && (
                 <div className="space-y-0.5 mt-0.5">
                   {group.items.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      title={collapsed ? item.label : undefined}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 group relative",
-                        collapsed ? "justify-center" : "",
-                        isActive(item.href)
-                          ? "bg-primary/14 text-accent ring-1 ring-primary/18 shadow-[0_10px_24px_rgba(142,191,36,0.07)]"
-                          : "text-white/56 hover:text-white/88 hover:bg-white/6"
-                      )}
-                    >
-                      <span className={cn("shrink-0", isActive(item.href) ? "text-accent" : "")}>
-                        {item.icon}
-                      </span>
-                      {!collapsed && (
-                        <span className="font-body text-xs truncate">{item.label}</span>
-                      )}
-                      {!collapsed && item.badge && (
-                        <Badge className="ml-auto bg-primary/20 text-accent border-0 text-[10px] px-1.5 py-0 h-4">
-                          {item.badge}
-                        </Badge>
-                      )}
-                      {collapsed && item.badge && (
-                        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
-                      )}
-                    </Link>
+                    <SidebarTooltip key={item.href} label={item.label} enabled={collapsed}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 group relative",
+                          collapsed ? "justify-center" : "",
+                          isActive(item.href)
+                            ? "bg-primary/14 text-accent ring-1 ring-primary/18 shadow-[0_10px_24px_rgba(142,191,36,0.07)]"
+                            : "text-white/56 hover:text-white/88 hover:bg-white/6"
+                        )}
+                      >
+                        <span className={cn("shrink-0", isActive(item.href) ? "text-accent" : "")}>
+                          {item.icon}
+                        </span>
+                        {!collapsed && (
+                          <span className="font-body text-xs truncate">{item.label}</span>
+                        )}
+                        {!collapsed && item.badge && (
+                          <Badge className="ml-auto bg-primary/20 text-accent border-0 text-[10px] px-1.5 py-0 h-4">
+                            {item.badge}
+                          </Badge>
+                        )}
+                        {collapsed && item.badge && (
+                          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+                        )}
+                      </Link>
+                    </SidebarTooltip>
                   ))}
                 </div>
               )}

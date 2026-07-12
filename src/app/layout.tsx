@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import LocalDBProvider from "@/components/providers/LocalDBProvider";
+import { ModernAlertProvider } from "@/components/shared/ModernAlertDialog";
 
 export const metadata: Metadata = {
   title: "AgroSync — Plataforma de Gestión Agrícola",
@@ -38,7 +39,9 @@ export default function RootLayout({
       </head>
       <body>
         <TooltipProvider>
-          <LocalDBProvider>{children}</LocalDBProvider>
+          <LocalDBProvider>
+            <ModernAlertProvider>{children}</ModernAlertProvider>
+          </LocalDBProvider>
         </TooltipProvider>
       </body>
     </html>

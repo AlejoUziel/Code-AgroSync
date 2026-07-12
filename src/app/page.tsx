@@ -7,6 +7,7 @@ import HarvestChart from "@/components/dashboard/HarvestChart";
 import WeatherWidget from "@/components/dashboard/WeatherWidget";
 import QuickActions from "@/components/dashboard/QuickActions";
 import RecentActivity from "@/components/dashboard/RecentActivity";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 export default function DashboardPage() {
   const hondurasDate = new Intl.DateTimeFormat("es-HN", {
@@ -23,24 +24,36 @@ export default function DashboardPage() {
       pageSubtitle={`Resumen operativo Honduras - ${hondurasDate}`}
     >
       <div className="space-y-6">
-        <DashboardKpis />
+        <ErrorBoundary>
+          <DashboardKpis />
+        </ErrorBoundary>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
-            <HarvestChart />
+            <ErrorBoundary>
+              <HarvestChart />
+            </ErrorBoundary>
           </div>
           <div className="flex flex-col gap-4">
-            <WeatherWidget />
-            <AlertsWidget />
+            <ErrorBoundary>
+              <WeatherWidget />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <AlertsWidget />
+            </ErrorBoundary>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
-            <RecentActivity />
+            <ErrorBoundary>
+              <RecentActivity />
+            </ErrorBoundary>
           </div>
           <div>
-            <QuickActions />
+            <ErrorBoundary>
+              <QuickActions />
+            </ErrorBoundary>
           </div>
         </div>
       </div>
