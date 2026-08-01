@@ -8,22 +8,28 @@ Write-Host "=============================================" -ForegroundColor Gree
 Write-Host ""
 
 # 1. Detectar mysql.exe
-$mysqlPaths = @(
-    "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe",
-    "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
-)
-
+$cmdMysql = Get-Command mysql.exe -ErrorAction SilentlyContinue
 $mysqlPath = $null
-foreach ($path in $mysqlPaths) {
-    if (Test-Path $path) {
-        $mysqlPath = $path
-        break
+
+if ($cmdMysql) {
+    $mysqlPath = $cmdMysql.Source
+} else {
+    $mysqlPaths = @(
+        "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe",
+        "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe",
+        "C:\xampp\mysql\bin\mysql.exe"
+    )
+    foreach ($path in $mysqlPaths) {
+        if (Test-Path $path) {
+            $mysqlPath = $path
+            break
+        }
     }
 }
 
 if (-not $mysqlPath) {
-    Write-Host "[ERROR] No se encontró la instalación de MySQL Server en las rutas estándar." -ForegroundColor Red
-    Write-Host "Por favor, verifica si tienes instalado MySQL Server 8.0 u 8.4 en tu sistema." -ForegroundColor Yellow
+    Write-Host "[ERROR] No se encontró la instalación de MySQL Server en el PATH ni en las rutas estándar." -ForegroundColor Red
+    Write-Host "Por favor, verifica si tienes instalado MySQL Server 8.0/8.4 o MySQL en el PATH de tu sistema." -ForegroundColor Yellow
     exit 1
 }
 

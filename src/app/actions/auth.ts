@@ -134,8 +134,6 @@ function validateRegister(data: {
 async function findUser(email: string) {
   if (!isDatabaseConfigured) return null;
 
-  await ensureLoginSecurityColumns();
-
   const rows = await query<AuthUserRow[]>(
     `SELECT id, nombre, apellido, email, rol, departamento, empresa_id, estado, password_hash, intentos_fallidos
      FROM usuarios
@@ -145,24 +143,6 @@ async function findUser(email: string) {
   );
 
   return rows[0] ?? null;
-}
-
-async function ensureLoginSecurityColumns() {
-  if (!isDatabaseConfigured) return;
-  try {
-    await query<ResultSetHeader>(
-      "ALTER TABLE usuarios ADD COLUMN intentos_fallidos INT NOT NULL DEFAULT 0 AFTER password_hash"
-    );
-  } catch {
-    // Ignorar si la columna ya existe
-  }
-  try {
-    await query<ResultSetHeader>(
-      "ALTER TABLE usuarios ADD COLUMN bloqueado_en DATETIME NULL AFTER intentos_fallidos"
-    );
-  } catch {
-    // Ignorar si la columna ya existe
-  }
 }
 
 async function createSupportAlertForBlockedUser(user: AuthUserRow, attempts: number) {

@@ -29,7 +29,9 @@ function dateOrNull(item: ResourceRecord, key: string) {
 
 function mysqlDate(value: unknown) {
   if (!value) return "";
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? "" : value.toISOString().slice(0, 10);
+  }
   return String(value).slice(0, 10);
 }
 
@@ -306,13 +308,35 @@ export function isResourceKey(value: string): value is ResourceKey {
 
 async function empresaId() {
   const session = await readSession();
-  return session?.empresaId ?? "EMP-DEMO";
+  return session?.empresaId ?? "";
+}
+
+function buildScopedSelectQuery(selectSql: string, empresaIdValue: string) {
+  if (!empresaIdValue) return { sql: selectSql, values: {} };
+  const prefix = selectSql.includes(" c.")
+    ? "c."
+    : selectSql.includes(" h.")
+    ? "h."
+    : "";
+  const whereClause = `WHERE ${prefix}empresa_id = :empresaId`;
+  if (selectSql.includes("ORDER BY")) {
+    return {
+      sql: selectSql.replace("ORDER BY", `${whereClause} ORDER BY`),
+      values: { empresaId: empresaIdValue },
+    };
+  }
+  return {
+    sql: `${selectSql} ${whereClause}`,
+    values: { empresaId: empresaIdValue },
+  };
 }
 
 export async function listResource(resource: ResourceKey) {
   if (!isDatabaseConfigured) return { items: [], dbConfigured: false };
   const config = stores[resource];
-  const rows = await query<DbRow[]>(config.select, {});
+  const currentEmpresaId = await empresaId();
+  const { sql, values } = buildScopedSelectQuery(config.select, currentEmpresaId);
+  const rows = await query<DbRow[]>(sql, values);
   return { items: rows.map(config.mapRow), dbConfigured: true };
 }
 

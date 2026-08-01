@@ -9,6 +9,10 @@ export function hashPassword(password: string) {
 }
 
 export function verifyPassword(password: string, storedHash: string) {
+  if (!storedHash || typeof storedHash !== "string") {
+    return false;
+  }
+
   const [algorithm, salt, hash] = storedHash.split("$");
 
   if (algorithm !== "scrypt" || !salt || !hash) {

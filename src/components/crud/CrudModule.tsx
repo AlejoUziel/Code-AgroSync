@@ -126,7 +126,19 @@ function FieldInput({
       type={field.type}
       step={field.type === "number" ? "any" : undefined}
       value={String(value ?? "")}
-      onChange={(event) => onChange(field.type === "number" ? Number(event.target.value) : event.target.value)}
+      onChange={(event) => {
+        if (field.type === "number") {
+          const val = event.target.value;
+          if (val === "") {
+            onChange(0);
+          } else {
+            const numVal = Number(val);
+            onChange(isNaN(numVal) ? 0 : numVal);
+          }
+        } else {
+          onChange(event.target.value);
+        }
+      }}
       className={base}
       disabled={disabled}
     />
