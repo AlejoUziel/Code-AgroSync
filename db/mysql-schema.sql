@@ -163,14 +163,3 @@ CREATE TABLE comunicacion_envios (
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-ALTER TABLE usuarios
-  ADD COLUMN IF NOT EXISTS departamento ENUM('AdministradorIT','Administrativo','Operativo','Tecnologico') NOT NULL DEFAULT 'Administrativo' AFTER rol;
-
-ALTER TABLE usuarios
-  ADD COLUMN IF NOT EXISTS intentos_fallidos INT NOT NULL DEFAULT 0 AFTER password_hash;
-
-ALTER TABLE usuarios
-  ADD COLUMN IF NOT EXISTS bloqueado_en DATETIME NULL AFTER intentos_fallidos;
-
-ALTER TABLE usuarios
-  MODIFY COLUMN rol ENUM('Administrador','Administrador IT','Gerente de Campo','Supervisor','Operador','Analista','Jornalero') NOT NULL;
