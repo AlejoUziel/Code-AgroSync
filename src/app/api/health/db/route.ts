@@ -10,10 +10,10 @@ export async function GET() {
 
   try {
     await query("SELECT 1 AS ok");
-    return Response.json({ ok: true, database: "mysql" });
+    return Response.json({ ok: true, database: "postgresql", provider: "neon" });
   } catch {
     return Response.json(
-      { ok: false, message: "No se pudo conectar a MySQL." },
+      { ok: false, message: "No se pudo conectar a PostgreSQL en Neon." },
       { status: 503 }
     );
   }

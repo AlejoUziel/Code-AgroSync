@@ -157,12 +157,15 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   }, [settingsState.ok]);
 
   const visibleGroups = navGroups.filter((group) => {
-    if (!user) return true;
+    if (!user) return false;
     if (user.departamento === "AdministradorIT") return true;
     if (user.departamento === "Tecnologico") return group.category === "Tecnológico";
     return group.category === user.departamento;
   });
   const homeHref = departamentoHome(user?.departamento);
+  const handleMobileNavigation = () => {
+    if (window.innerWidth < 1024 && !collapsed) onToggle();
+  };
 
   return (
     <>
@@ -178,7 +181,9 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         className={cn(
           "fixed left-0 top-0 z-30 h-screen flex flex-col transition-all duration-300 ease-in-out",
           "bg-[linear-gradient(180deg,#171A16_0%,#1E241A_54%,#141713_100%)] border-r border-white/8 shadow-[18px_0_48px_rgba(20,23,19,0.14)]",
-          collapsed ? "w-[64px]" : "w-[256px]"
+          collapsed
+            ? "w-[256px] -translate-x-full lg:w-[64px] lg:translate-x-0"
+            : "w-[min(88vw,256px)] translate-x-0 lg:w-[256px]"
         )}
       >
         {/* Logo area */}
@@ -226,6 +231,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <SidebarTooltip label="Inicio" enabled={collapsed}>
             <Link
               href={homeHref}
+              onClick={handleMobileNavigation}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group",
                 collapsed ? "justify-center" : "",
@@ -282,6 +288,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     <SidebarTooltip key={item.href} label={item.label} enabled={collapsed}>
                       <Link
                         href={item.href}
+                        onClick={handleMobileNavigation}
                         className={cn(
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 group relative",
                           collapsed ? "justify-center" : "",
@@ -351,6 +358,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   onClick={() => setSettingsOpen(true)}
                   className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-card/5 transition-colors"
                   title="Configuración"
+                  aria-label="Abrir configuración"
                 >
                   <Settings size={13} />
                 </button>
@@ -358,6 +366,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   <button
                     className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-card/5 transition-colors"
                     title="Cerrar sesión"
+                    aria-label="Cerrar sesión"
                   >
                     <LogOut size={13} />
                   </button>

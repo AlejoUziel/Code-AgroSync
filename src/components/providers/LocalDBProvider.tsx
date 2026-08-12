@@ -2,11 +2,8 @@
 
 /**
  * LocalDBProvider
- * Runs once on app mount and seeds localStorage with demo data
- * if the keys don't exist yet (i.e. first visit).
- *
- * MySQL migration: Remove this file entirely and replace with
- * real API calls / server-side data fetching.
+ * Keeps demo data available only during local development. Production always
+ * reads and writes through the shared PostgreSQL APIs.
  */
 
 import { useEffect, useState } from "react";
@@ -40,7 +37,7 @@ export default function LocalDBProvider({ children }: LocalDBProviderProps) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    seedIfEmpty();
+    if (process.env.NODE_ENV !== "production") seedIfEmpty();
     setTimeout(() => {
       setReady(true);
     }, 0);

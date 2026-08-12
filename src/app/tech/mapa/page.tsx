@@ -30,7 +30,7 @@ export default function MapaPage() {
 
   return (
     <AppShell pageTitle="Mapa Interactivo Agricola" pageSubtitle="Tecnologico · Honduras">
-      <div className="bg-card rounded-xl border border-[var(--border)] overflow-hidden" style={{ height: "calc(100vh - 170px)", minHeight: 520 }}>
+      <div className="h-[calc(100dvh-9rem)] min-h-[22rem] overflow-hidden rounded-xl border border-[var(--border)] bg-card sm:h-[calc(100dvh-10.625rem)] sm:min-h-[32.5rem]">
         <ParcelasMap parcelas={records.map(toGeo)} />
       </div>
     </AppShell>

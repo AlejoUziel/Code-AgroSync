@@ -1,104 +1,103 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowRight, ClipboardCheck, FileText, PackageCheck, Sprout, Wrench } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { ClipboardCheck, FileText, PackageCheck, Sprout, UserSquare2, Wallet } from "lucide-react";
 
-const activities = [
-  {
-    id: 1,
-    user: "Carlos R.",
-    action: "registro cosecha en",
-    target: "Parcela Norte-08",
-    detail: "320 toneladas de maiz",
-    time: "10:42",
-    type: "harvest",
-    href: "/ops/produccion",
-  },
-  {
-    id: 2,
-    user: "Maria L.",
-    action: "aplico tratamiento en",
-    target: "Lote B-12",
-    detail: "Fungicida preventivo",
-    time: "09:18",
-    type: "treatment",
-    href: "/tech/alertas",
-  },
-  {
-    id: 3,
-    user: "Admin",
-    action: "actualizo inventario",
-    target: "Fertilizante NPK",
-    detail: "2,400 kg ingresados",
-    time: "08:55",
-    type: "inventory",
-    href: "/ops/inventario",
-  },
-  {
-    id: 4,
-    user: "Juan P.",
-    action: "creo nuevo cultivo en",
-    target: "Parcela Sur-03",
-    detail: "Sorgo - Ciclo primavera",
-    time: "08:22",
-    type: "crop",
-    href: "/ops/cultivos",
-  },
-  {
-    id: 5,
-    user: "Sistema",
-    action: "genero reporte automatico",
-    target: "Produccion mensual",
-    detail: "Mayo 2026 completado",
-    time: "Ayer",
-    type: "report",
-    href: "/tech/reportes",
-  },
-];
-
-const typeConfig = {
-  harvest: { icon: ClipboardCheck, color: "bg-[var(--primary)]/15 text-[var(--primary)]" },
-  treatment: { icon: Wrench, color: "bg-amber-100 text-amber-600" },
-  inventory: { icon: PackageCheck, color: "bg-blue-100 text-blue-600" },
-  crop: { icon: Sprout, color: "bg-[var(--accent)]/20 text-[var(--primary-dark)]" },
-  report: { icon: FileText, color: "bg-slate-100 text-slate-600" },
+type Activity = {
+  id: number;
+  user: string;
+  action: string;
+  resource: string;
+  target: string;
+  recordId: string;
+  createdAt: string;
 };
 
+const resourceConfig = {
+  cosechas: { icon: ClipboardCheck, label: "cosecha", color: "bg-[var(--primary)]/15 text-[var(--primary)]" },
+  cultivos: { icon: Sprout, label: "cultivo", color: "bg-[var(--accent)]/20 text-[var(--primary-dark)]" },
+  inventario: { icon: PackageCheck, label: "inventario", color: "bg-blue-100 text-blue-600" },
+  empleados: { icon: UserSquare2, label: "empleado", color: "bg-violet-100 text-violet-600" },
+  finanzas: { icon: Wallet, label: "transacción", color: "bg-amber-100 text-amber-600" },
+  reportes: { icon: FileText, label: "reporte", color: "bg-slate-100 text-slate-600" },
+};
+
+function relativeTime(value: string) {
+  const elapsed = Math.max(0, Date.now() - new Date(value).getTime());
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes < 1) return "ahora";
+  if (minutes < 60) return `hace ${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours}h`;
+  return new Intl.DateTimeFormat("es-HN", { day: "2-digit", month: "short" }).format(new Date(value));
+}
+
 export default function RecentActivity() {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const load = () => {
+      fetch("/api/activity", { cache: "no-store" })
+        .then((response) => (response.ok ? response.json() : { items: [] }))
+        .then((data) => {
+          if (active) setActivities(data.items ?? []);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    };
+    load();
+    const interval = window.setInterval(load, 15_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
   return (
     <div className="rounded-xl border border-[var(--border)] bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-heading text-sm text-[#1E1E1E]">Actividad reciente</h2>
-        <Link href="/tech/reportes" className="flex items-center gap-1 text-xs font-body text-[var(--primary)] transition-colors hover:text-[var(--primary-dark)]">
-          Ver registro completo <ArrowRight size={12} />
-        </Link>
+        <div>
+          <h2 className="font-heading text-sm text-[#1E1E1E]">Actividad auditada</h2>
+          <p className="text-[10px] text-muted-foreground">Datos reales guardados por el backend</p>
+        </div>
+        <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5 text-[10px] text-[var(--primary)]">{activities.length} eventos</span>
       </div>
 
-      <div className="space-y-2">
-        {activities.map((activity) => {
-          const cfg = typeConfig[activity.type as keyof typeof typeConfig];
-          return (
-            <Link
-              key={activity.id}
-              href={activity.href}
-              className="group flex items-start gap-3 rounded-lg p-2 transition-colors hover:bg-[var(--secondary)]/70"
-            >
-              <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full", cfg.color)}>
-                <cfg.icon size={14} />
+      {loading ? (
+        <p className="py-6 text-center text-xs text-muted-foreground">Cargando actividad...</p>
+      ) : activities.length === 0 ? (
+        <p className="rounded-lg bg-[var(--background)] p-4 text-center text-xs text-muted-foreground">
+          Todavía no hay cambios auditados para los módulos habilitados.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {activities.map((activity) => {
+            const cfg = resourceConfig[activity.resource as keyof typeof resourceConfig] ?? {
+              icon: FileText,
+              label: activity.resource,
+              color: "bg-slate-100 text-slate-600",
+            };
+            return (
+              <div key={activity.id} className="flex items-start gap-3 rounded-lg p-2 hover:bg-[var(--secondary)]/70">
+                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${cfg.color}`}>
+                  <cfg.icon size={14} aria-hidden="true" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs leading-relaxed text-[#1E1E1E]">
+                    <span className="font-medium-body">{activity.user}</span> {activity.action} {cfg.label}{" "}
+                    <span className="font-medium-body text-[var(--primary)]">{activity.target}</span>
+                  </p>
+                  <p className="text-[10px] text-[#9CA3AF]">{activity.recordId}</p>
+                </div>
+                <span className="shrink-0 whitespace-nowrap text-[10px] text-[#9CA3AF]">{relativeTime(activity.createdAt)}</span>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-body leading-relaxed text-[#1E1E1E]">
-                  <span className="font-medium-body">{activity.user}</span> {activity.action}{" "}
-                  <span className="font-medium-body text-[var(--primary)]">{activity.target}</span>
-                </p>
-                <p className="text-[11px] font-body text-[#9CA3AF]">{activity.detail}</p>
-              </div>
-              <span className="shrink-0 whitespace-nowrap text-[10px] font-body text-[#C4C4C4]">{activity.time}</span>
-            </Link>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

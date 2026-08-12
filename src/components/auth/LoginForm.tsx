@@ -3,7 +3,6 @@
 import { useActionState, useState } from "react";
 import { Building2, Eye, EyeOff, Lock, LogIn, Mail, Phone, User, UserPlus, Loader2 } from "lucide-react";
 import { login, register, type LoginState, type RegisterState } from "@/app/actions/auth";
-import { departamentos } from "@/lib/departments";
 
 const initialState: LoginState = {};
 const initialRegisterState: RegisterState = {};
@@ -98,8 +97,8 @@ export default function LoginForm() {
                   type="button"
                   disabled={pending}
                   onClick={() => setShowPassword((show) => !show)}
-                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
                   aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -167,28 +166,14 @@ export default function LoginForm() {
               {registerState?.errors?.email && <p className="mt-1 text-xs text-red-500">{registerState.errors.email}</p>}
             </div>
 
-            <div>
-              <label htmlFor="departamento" className="font-medium-body text-xs text-foreground">
-                Departamento o acceso
-              </label>
-              <div className={fieldClass}>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--secondary)]/55 px-3 py-2.5">
+              <div className="flex items-center gap-2 text-xs font-medium-body text-foreground">
                 <Building2 size={15} className={iconClass} />
-                <select
-                  id="departamento"
-                  name="departamento"
-                  required
-                  defaultValue="Administrativo"
-                  className="w-full bg-transparent text-sm outline-none disabled:text-muted-foreground/60 disabled:cursor-not-allowed cursor-pointer"
-                  disabled={pending}
-                >
-                  {departamentos.map((departamento) => (
-                    <option key={departamento.value} value={departamento.value}>
-                      {departamento.label}
-                    </option>
-                  ))}
-                </select>
+                Acceso inicial: Operativo
               </div>
-              {registerState?.errors?.departamento && <p className="mt-1 text-xs text-red-500">{registerState.errors.departamento}</p>}
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Los permisos administrativos solo pueden ser asignados por un Administrador IT autorizado.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -235,6 +220,7 @@ export default function LoginForm() {
                     type="button"
                     disabled={pending}
                     onClick={() => setShowPassword((show) => !show)}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
                   >
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
@@ -262,6 +248,7 @@ export default function LoginForm() {
                     type="button"
                     disabled={pending}
                     onClick={() => setShowConfirmPassword((show) => !show)}
+                    aria-label={showConfirmPassword ? "Ocultar confirmación de contraseña" : "Mostrar confirmación de contraseña"}
                     className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
                   >
                     {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}

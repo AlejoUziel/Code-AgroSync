@@ -1,14 +1,19 @@
 import { randomUUID } from "crypto";
-import type { ResultSetHeader } from "mysql2";
-import { isDatabaseConfigured, query } from "@/lib/db";
+import { isDatabaseConfigured, query, type ResultSetHeader } from "@/lib/db";
 import { isSmtpConfigured, sendEmail } from "@/lib/email";
-import { readSession } from "@/lib/session";
+import { accessErrorResponse, assertSameOrigin, requireResourceAccess } from "@/lib/authorization";
+import { isResourceKey } from "@/lib/resource-store";
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 export async function POST(request: Request) {
+  try {
+    assertSameOrigin(request);
+  } catch (error) {
+    return accessErrorResponse(error, "Solicitud no permitida.");
+  }
   const body = await request.json();
   const canal = String(body.canal ?? "");
   const recurso = String(body.recurso ?? "");
@@ -16,7 +21,15 @@ export async function POST(request: Request) {
   const destino = String(body.destino ?? "");
   const asunto = String(body.asunto ?? "AgroSync");
   const mensaje = String(body.mensaje ?? "");
-  const session = await readSession();
+  if (!isResourceKey(recurso)) {
+    return Response.json({ message: "Recurso no valido." }, { status: 400 });
+  }
+  let session;
+  try {
+    session = await requireResourceAccess(recurso);
+  } catch (error) {
+    return accessErrorResponse(error, "No autorizado.", 401);
+  }
 
   if (!canal || !recurso || !recursoId) {
     return Response.json({ message: "Datos de comunicacion incompletos." }, { status: 400 });
@@ -35,7 +48,7 @@ export async function POST(request: Request) {
        )`,
       {
         id: randomUUID(),
-        empresaId: session?.empresaId ?? "EMP-DEMO",
+        empresaId: session.empresaId,
         recurso,
         recursoId,
         canal,

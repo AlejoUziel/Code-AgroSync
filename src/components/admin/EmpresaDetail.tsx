@@ -1,11 +1,11 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Empresa, Usuario } from "@/types/models";
 import {
-  Building2, Mail, Phone, MapPin, Globe, FileText,
-  Users, Edit2, Trash2, Calendar, CreditCard, StickyNote,
+  Building2, Mail, Phone, MapPin, Globe,
+  Edit2, Trash2, Calendar, StickyNote,
 } from "lucide-react";
 
 interface EmpresaDetailProps {

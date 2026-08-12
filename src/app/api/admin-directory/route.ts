@@ -1,8 +1,8 @@
 import { randomUUID } from "crypto";
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import { isDatabaseConfigured, query } from "@/lib/db";
+import { isDatabaseConfigured, query, type ResultSetHeader, type RowDataPacket } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import { readSession } from "@/lib/session";
+import { accessErrorResponse, assertSameOrigin, requireAdministratorIT } from "@/lib/authorization";
 import type { Empresa, EstadoUsuario, RolUsuario, Usuario } from "@/types/models";
 
 interface UserRow extends RowDataPacket {
@@ -38,6 +38,16 @@ type UserPayload = Partial<Usuario> & {
   confirmPassword?: string;
 };
 type CompanyPayload = Partial<Empresa>;
+
+async function authorizeAdmin(request?: Request) {
+  try {
+    if (request && request.method !== "GET") assertSameOrigin(request);
+    await requireAdministratorIT();
+    return null;
+  } catch (error) {
+    return accessErrorResponse(error, "No autorizado.", 401);
+  }
+}
 
 function iso(value: Date | string | null) {
   if (!value) return undefined;
@@ -123,6 +133,8 @@ function validateCompanyPayload(body: CompanyPayload) {
 }
 
 export async function GET(request: Request) {
+  const denied = await authorizeAdmin(request);
+  if (denied) return denied;
   const url = new URL(request.url);
   const q = `%${(url.searchParams.get("q") ?? "").trim()}%`;
   const tab = url.searchParams.get("tab") === "empresas" ? "empresas" : "usuarios";
@@ -163,6 +175,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const denied = await authorizeAdmin(request);
+  if (denied) return denied;
   if (!isDatabaseConfigured) {
     return Response.json({ dbConfigured: false, message: "DATABASE_URL no esta configurada." }, { status: 503 });
   }
@@ -227,7 +241,7 @@ export async function POST(request: Request) {
     } catch (error) {
       const message = error instanceof Error && error.message.includes("Duplicate")
         ? "Ya existe una empresa con ese NIT / RUC."
-        : "No se pudo crear la empresa en MySQL.";
+        : "No se pudo crear la empresa en PostgreSQL.";
       return Response.json({ message }, { status: 400 });
     }
 
@@ -292,7 +306,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof Error && error.message.includes("Duplicate")
       ? "Ya existe un usuario con ese correo."
-      : "No se pudo crear el usuario en MySQL.";
+      : "No se pudo crear el usuario en PostgreSQL.";
     return Response.json({ message }, { status: 400 });
   }
 
@@ -308,6 +322,8 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const denied = await authorizeAdmin(request);
+  if (denied) return denied;
   if (!isDatabaseConfigured) {
     return Response.json({ dbConfigured: false, message: "DATABASE_URL no esta configurada." }, { status: 503 });
   }
@@ -372,7 +388,7 @@ export async function PUT(request: Request) {
     } catch (error) {
       const message = error instanceof Error && error.message.includes("Duplicate")
         ? "Ya existe una empresa con ese NIT / RUC o correo."
-        : "No se pudo actualizar la empresa en MySQL.";
+        : "No se pudo actualizar la empresa en PostgreSQL.";
       return Response.json({ message }, { status: 400 });
     }
 
@@ -414,7 +430,8 @@ export async function PUT(request: Request) {
            rol = :rol,
            departamento = :departamento,
            estado = :estado,
-           notas = :notas
+           notas = :notas,
+           session_version = session_version + 1
            ${shouldUpdatePassword ? ", password_hash = :passwordHash, intentos_fallidos = 0, bloqueado_en = NULL" : ""}
        WHERE id = :id`,
       {
@@ -434,7 +451,7 @@ export async function PUT(request: Request) {
   } catch (error) {
     const message = error instanceof Error && error.message.includes("Duplicate")
       ? "Ya existe un usuario con ese correo."
-      : "No se pudo actualizar el usuario en MySQL.";
+      : "No se pudo actualizar el usuario en PostgreSQL.";
     return Response.json({ message }, { status: 400 });
   }
 
@@ -454,6 +471,8 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const denied = await authorizeAdmin(request);
+  if (denied) return denied;
   if (!isDatabaseConfigured) {
     return Response.json({ dbConfigured: false, message: "DATABASE_URL no esta configurada." }, { status: 503 });
   }

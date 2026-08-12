@@ -286,7 +286,12 @@ export function Toast({ message, type, onClose }: ToastProps) {
         <XCircle size={16} className="text-red-500 shrink-0" />
       )}
       <span className="flex-1">{message}</span>
-      <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#1E1E1E] transition-colors">
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar notificación"
+        className="text-[#9CA3AF] hover:text-[#1E1E1E] transition-colors"
+      >
         <X size={14} />
       </button>
     </div>
