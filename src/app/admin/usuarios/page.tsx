@@ -10,7 +10,6 @@ import {
   Usuario,
   seedEmpresas,
   seedUsuarios,
-  RolUsuario,
 } from "@/types/models";
 import EmpresaForm from "@/components/admin/EmpresaForm";
 import UsuarioForm, { type UsuarioEmpresaDraft } from "@/components/admin/UsuarioForm";
@@ -25,17 +24,16 @@ import {
   Search,
   Plus,
   Filter,
-  MoreHorizontal,
   Building2,
   Users,
   Shield,
   Eye,
   Edit2,
   Trash2,
-  ChevronDown,
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { subscribeToRealtime } from "@/lib/realtime-client";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const rolColors: Record<string, string> = {
@@ -93,6 +91,8 @@ type UsuarioSavePayload = Partial<Usuario> & {
   password?: string;
   confirmPassword?: string;
 };
+
+const allowLocalDirectory = process.env.NODE_ENV !== "production";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function UsuariosPage() {
@@ -159,6 +159,28 @@ export default function UsuariosPage() {
     };
   }, [loadDirectory, search, tab]);
 
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      if (!active || document.visibilityState !== "visible") return;
+      void loadDirectory(tab, search).catch(() => {
+        if (active) setDbDirectoryConfigured(false);
+      });
+    };
+    const unsubscribe = subscribeToRealtime(refresh);
+    const interval = window.setInterval(refresh, 15000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+
+    return () => {
+      active = false;
+      unsubscribe();
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [loadDirectory, search, tab]);
+
   // ── Usuario modals ────────────────────────────────────────────────────────────
   const [usuarioFormOpen, setUsuarioFormOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
@@ -171,8 +193,8 @@ export default function UsuariosPage() {
   const [viewingEmpresa, setViewingEmpresa] = useState<Empresa | null>(null);
 
   // ── Derived data ─────────────────────────────────────────────────────────────
-  const usuarioRecords = dbDirectoryConfigured ? dbUsuarios : [];
-  const empresaRecords = dbDirectoryConfigured ? dbEmpresas : [];
+  const usuarioRecords = useMemo(() => dbDirectoryConfigured ? dbUsuarios : [], [dbDirectoryConfigured, dbUsuarios]);
+  const empresaRecords = useMemo(() => dbDirectoryConfigured ? dbEmpresas : [], [dbDirectoryConfigured, dbEmpresas]);
 
   const filteredUsuarios = useMemo(() => {
     const q = search.toLowerCase();
@@ -215,7 +237,7 @@ export default function UsuariosPage() {
       });
       const companyResult = (await companyResponse.json().catch(() => ({}))) as { item?: Empresa; message?: string; reused?: boolean };
       if (!companyResponse.ok || !companyResult.item) {
-        showToast(companyResult.message ?? "No se pudo crear la empresa en MySQL.", "error");
+        showToast(companyResult.message ?? "No se pudo crear la empresa en PostgreSQL.", "error");
         return null;
       }
       setDbEmpresas((current) => current.some((empresa) => empresa.id === companyResult.item?.id) ? current : [...current, companyResult.item as Empresa]);
@@ -225,6 +247,11 @@ export default function UsuariosPage() {
           : `Empresa "${companyResult.item.nombre}" creada. Ahora puedes crear el usuario.`
       );
       return companyResult.item;
+    }
+
+    if (!allowLocalDirectory) {
+      showToast("La base compartida no esta disponible. No se guardaron cambios locales.", "error");
+      return null;
     }
 
     const newCompany = empresaDB.create({
@@ -268,11 +295,14 @@ export default function UsuariosPage() {
       );
       const result = (await response.json().catch(() => ({}))) as { message?: string };
       if (!response.ok) {
-        showToast(result.message ?? "No se pudo guardar el usuario en MySQL.", "error");
+        showToast(result.message ?? "No se pudo guardar el usuario en PostgreSQL.", "error");
         return;
       }
       await loadDirectory("usuarios", search);
-      showToast(`Usuario "${data.nombre} ${data.apellido}" ${editingUsuario ? "actualizado" : "creado"} en MySQL.`);
+      showToast(`Usuario "${data.nombre} ${data.apellido}" ${editingUsuario ? "actualizado" : "creado"} en PostgreSQL.`);
+    } else if (!allowLocalDirectory) {
+      showToast("La base compartida no esta disponible. No se guardaron cambios locales.", "error");
+      return;
     } else if (editingUsuario) {
       usuarioDB.update(editingUsuario.id, data);
       showToast(`Usuario "${data.nombre} ${data.apellido}" actualizado.`);
@@ -296,12 +326,15 @@ export default function UsuariosPage() {
       });
       const result = (await response.json().catch(() => ({}))) as { message?: string };
       if (!response.ok) {
-        showToast(result.message ?? "No se pudo eliminar el usuario en MySQL.", "error");
+        showToast(result.message ?? "No se pudo eliminar el usuario en PostgreSQL.", "error");
         return;
       }
       await loadDirectory("usuarios", search);
-    } else {
+    } else if (allowLocalDirectory) {
       usuarioDB.remove(deletingUsuario.id);
+    } else {
+      showToast("La base compartida no esta disponible. No se eliminaron datos.", "error");
+      return;
     }
     showToast(`Usuario "${deletingUsuario.nombre}" eliminado.`, "error");
     setDeletingUsuario(null);
@@ -328,19 +361,22 @@ export default function UsuariosPage() {
       );
       const result = (await response.json().catch(() => ({}))) as { item?: Empresa; message?: string; reused?: boolean };
       if (!response.ok || !result.item) {
-        showToast(result.message ?? "No se pudo guardar la empresa en MySQL.", "error");
+        showToast(result.message ?? "No se pudo guardar la empresa en PostgreSQL.", "error");
         return;
       }
       await loadDirectory("empresas", search);
       showToast(
         result.reused
-          ? `Empresa "${result.item.nombre}" ya existia en MySQL.`
-          : `Empresa "${result.item.nombre}" ${editingEmpresa ? "actualizada" : "creada"} en MySQL.`
+          ? `Empresa "${result.item.nombre}" ya existia en PostgreSQL.`
+          : `Empresa "${result.item.nombre}" ${editingEmpresa ? "actualizada" : "creada"} en PostgreSQL.`
       );
+    } else if (!allowLocalDirectory) {
+      showToast("La base compartida no esta disponible. No se guardaron cambios locales.", "error");
+      return;
     } else if (editingEmpresa) {
       empresaDB.update(editingEmpresa.id, data);
       showToast(`Empresa "${data.nombre}" actualizada.`);
-    } else {
+    } else if (allowLocalDirectory) {
       empresaDB.create({
         ...data,
         id: generateId("EMP"),
@@ -362,18 +398,21 @@ export default function UsuariosPage() {
       });
       const result = (await response.json().catch(() => ({}))) as { message?: string };
       if (!response.ok) {
-        showToast(result.message ?? "No se pudo eliminar la empresa en MySQL.", "error");
+        showToast(result.message ?? "No se pudo eliminar la empresa en PostgreSQL.", "error");
         return;
       }
       await loadDirectory("empresas", search);
-      showToast(`Empresa "${deletingEmpresa.nombre}" eliminada de MySQL.`, "error");
-    } else {
+      showToast(`Empresa "${deletingEmpresa.nombre}" eliminada de PostgreSQL.`, "error");
+    } else if (allowLocalDirectory) {
       const linkedUsers = usuarioDB.records.filter(
         (u) => u.empresaId === deletingEmpresa.id
       );
       linkedUsers.forEach((u) => usuarioDB.remove(u.id));
       empresaDB.remove(deletingEmpresa.id);
       showToast(`Empresa "${deletingEmpresa.nombre}" y ${linkedUsers.length} usuario(s) eliminados.`, "error");
+    } else {
+      showToast("La base compartida no esta disponible. No se eliminaron datos.", "error");
+      return;
     }
     setDeletingEmpresa(null);
     setViewingEmpresa(null);
@@ -388,14 +427,14 @@ export default function UsuariosPage() {
       pageSubtitle={`Administrativo · ${usuarioRecords.length} usuarios · ${empresaRecords.length} empresas`}
     >
       {/* ─── KPI Row ──────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
         {[
-          { label: "Total Usuarios", value: usuarioRecords.length, sub: dbDirectoryConfigured ? "desde MySQL" : "registrados", icon: <Users size={16} className="text-[var(--primary)]" /> },
+          { label: "Total Usuarios", value: usuarioRecords.length, sub: dbDirectoryConfigured ? "desde Neon" : "registrados", icon: <Users size={16} className="text-[var(--primary)]" /> },
           { label: "Activos Hoy", value: activeUsers, sub: "sesiones activas", icon: <Shield size={16} className="text-[var(--primary)]" /> },
           { label: "Empresas", value: empresaRecords.length, sub: `${activeEmpresas} activas`, icon: <Building2 size={16} className="text-[var(--primary)]" /> },
           { label: "Roles Distintos", value: [...new Set(usuarioRecords.map((u) => u.rol))].length, sub: "tipos de acceso" },
         ].map((s) => (
-          <div key={s.label} className="bg-card rounded-xl border border-[var(--border)] p-4 flex items-start gap-3">
+          <div key={s.label} className="flex min-w-0 flex-col items-start gap-2 rounded-xl border border-[var(--border)] bg-card p-3 xl:flex-row xl:gap-3 xl:p-4">
             {s.icon && (
               <div className="w-9 h-9 rounded-lg bg-[var(--secondary)] flex items-center justify-center shrink-0">
                 {s.icon}
@@ -413,13 +452,13 @@ export default function UsuariosPage() {
       {/* ─── Main card ────────────────────────────────────────────────────────── */}
       <div className="bg-card rounded-xl border border-[var(--border)]">
         {/* Tabs + toolbar */}
-        <div className="flex items-center gap-0 border-b border-[var(--border)] px-4 pt-3">
+        <div className="flex items-center gap-0 overflow-x-auto border-b border-[var(--border)] px-2 pt-3 sm:px-4">
           {(["usuarios", "empresas"] as TabKey[]).map((t) => (
             <button
               key={t}
               onClick={() => { setTab(t); setSearch(""); setFilterRol(""); setFilterEmpresaId(""); setFilterEstado(""); }}
               className={cn(
-                "px-5 py-2.5 text-xs font-body border-b-2 transition-all capitalize",
+                "whitespace-nowrap px-4 py-2.5 text-xs font-body border-b-2 transition-all capitalize sm:px-5",
                 tab === t
                   ? "border-[var(--primary)] text-[var(--primary)] font-medium-body"
                   : "border-transparent text-[#6B7280] hover:text-[#1E1E1E]"
@@ -431,9 +470,9 @@ export default function UsuariosPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 p-4 border-b border-[var(--border)]">
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] p-3 sm:p-4">
           {/* Search */}
-          <div className="flex items-center gap-2 bg-[var(--background)] rounded-lg px-3 py-2 border border-[var(--border)] flex-1 min-w-[200px] max-w-xs focus-within:border-[var(--primary)] transition-colors">
+          <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 transition-colors focus-within:border-[var(--primary)] sm:max-w-xs sm:flex-1">
             <Search size={13} className="text-[#9CA3AF] shrink-0" />
             <input
               type="text"
@@ -443,7 +482,12 @@ export default function UsuariosPage() {
               className="bg-transparent text-xs font-body text-[#1E1E1E] placeholder:text-[#9CA3AF] outline-none w-full"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="text-[#C4C4C4] hover:text-[#9CA3AF] text-xs">✕</button>
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="Limpiar búsqueda"
+                className="text-[#C4C4C4] hover:text-[#9CA3AF] text-xs"
+              >✕</button>
             )}
           </div>
 
@@ -471,14 +515,17 @@ export default function UsuariosPage() {
             onClick={() => {
               if (dbDirectoryConfigured) {
                 void loadDirectory(tab, search);
-                showToast("Datos sincronizados desde MySQL.");
-              } else {
+                showToast("Datos sincronizados desde Neon.");
+              } else if (allowLocalDirectory) {
                 empresaDB.reset();
                 usuarioDB.reset();
                 showToast("Datos iniciales restaurados.");
+              } else {
+                showToast("La base compartida no esta disponible.", "error");
               }
             }}
-            title={dbDirectoryConfigured ? "Sincronizar con MySQL" : "Restaurar datos iniciales"}
+            title={dbDirectoryConfigured ? "Sincronizar con Neon" : "Restaurar datos iniciales"}
+            aria-label={dbDirectoryConfigured ? "Sincronizar con Neon" : "Restaurar datos iniciales"}
             className="p-2 rounded-lg border border-[var(--border)] text-[#9CA3AF] hover:text-[var(--primary)] hover:border-[var(--primary)]/40 transition-all"
           >
             <RefreshCw size={13} />
@@ -490,7 +537,7 @@ export default function UsuariosPage() {
               if (tab === "usuarios") { setEditingUsuario(null); setUsuarioFormOpen(true); }
               else { setEditingEmpresa(null); setEmpresaFormOpen(true); }
             }}
-            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2.5 text-xs font-medium-body text-white transition-colors hover:bg-[var(--primary-dark)] sm:ml-auto sm:w-auto sm:py-2"
           >
             <Plus size={13} />
             {tab === "usuarios" ? "Nuevo Usuario" : "Nueva Empresa"}
@@ -543,7 +590,7 @@ export default function UsuariosPage() {
 
         {/* ── USUARIOS TABLE ──────────────────────────────────────────────────── */}
         {tab === "usuarios" && (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
             {filteredUsuarios.length === 0 ? (
               <EmptyState
                 icon={<Users size={24} />}
@@ -559,7 +606,7 @@ export default function UsuariosPage() {
                 }
               />
             ) : (
-              <table className="w-full">
+              <table className="w-full min-w-[840px]">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
                     {["Usuario", "Empresa", "Rol", "Estado", "Último acceso", "Creado", ""].map((h) => (
@@ -623,9 +670,10 @@ export default function UsuariosPage() {
                         </td>
                         {/* Actions */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
                             <button
                               title="Editar"
+                              aria-label={`Editar usuario ${u.nombre}`}
                               onClick={() => { setEditingUsuario(u); setUsuarioFormOpen(true); }}
                               className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors"
                             >
@@ -633,6 +681,7 @@ export default function UsuariosPage() {
                             </button>
                             <button
                               title="Eliminar"
+                              aria-label={`Eliminar usuario ${u.nombre}`}
                               onClick={() => setDeletingUsuario(u)}
                               className="p-1.5 rounded-md hover:bg-red-50 text-[#9CA3AF] hover:text-red-500 transition-colors"
                             >
@@ -651,7 +700,7 @@ export default function UsuariosPage() {
 
         {/* ── EMPRESAS TABLE ──────────────────────────────────────────────────── */}
         {tab === "empresas" && (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
             {filteredEmpresas.length === 0 ? (
               <EmptyState
                 icon={<Building2 size={24} />}
@@ -667,7 +716,7 @@ export default function UsuariosPage() {
                 }
               />
             ) : (
-              <table className="w-full">
+              <table className="w-full min-w-[980px]">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
                     {["Empresa", "NIT / RUC", "Contacto", "Ciudad", "Plan", "Usuarios", "Estado", "Registro", ""].map((h) => (
@@ -713,9 +762,10 @@ export default function UsuariosPage() {
                         </td>
                         {/* Actions */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
                             <button
                               title="Ver detalle"
+                              aria-label={`Ver detalle de empresa ${e.nombre}`}
                               onClick={() => setViewingEmpresa(e)}
                               className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors"
                             >
@@ -723,6 +773,7 @@ export default function UsuariosPage() {
                             </button>
                             <button
                               title="Editar"
+                              aria-label={`Editar empresa ${e.nombre}`}
                               onClick={() => { setEditingEmpresa(e); setEmpresaFormOpen(true); }}
                               className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors"
                             >
@@ -730,6 +781,7 @@ export default function UsuariosPage() {
                             </button>
                             <button
                               title="Eliminar"
+                              aria-label={`Eliminar empresa ${e.nombre}`}
                               onClick={() => setDeletingEmpresa(e)}
                               className="p-1.5 rounded-md hover:bg-red-50 text-[#9CA3AF] hover:text-red-500 transition-colors"
                             >
@@ -754,7 +806,7 @@ export default function UsuariosPage() {
               : `${filteredEmpresas.length} de ${empresaRecords.length} empresas`}
           </p>
           <p className="font-body text-[10px] text-[#C4C4C4]">
-            {searchingDb ? "Buscando..." : dbDirectoryConfigured ? "Busqueda conectada a MySQL" : "Base de datos local: sincronizable con MySQL"}
+            {searchingDb ? "Buscando..." : dbDirectoryConfigured ? "Busqueda conectada a PostgreSQL" : "Base de datos compartida no disponible"}
           </p>
         </div>
       </div>

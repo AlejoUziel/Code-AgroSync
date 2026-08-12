@@ -1,13 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { randomUUID } from "crypto";
-import { cookies } from "next/headers";
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import { isDatabaseConfigured, query } from "@/lib/db";
+import { createHash, randomUUID, timingSafeEqual } from "crypto";
+import { cookies, headers } from "next/headers";
+import { isDatabaseConfigured, query, withTransaction, type QueryExecutor, type ResultSetHeader, type RowDataPacket } from "@/lib/db";
 import { createSession, deleteSession, readSession } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { departamentoHome, normalizeDepartamento } from "@/lib/departments";
+import { publicRegistrationIdentity, roleForDepartment } from "@/lib/auth-policy";
 
 export type LoginState = {
   errors?: Partial<Record<"email" | "password", string>>;
@@ -40,6 +40,7 @@ interface AuthUserRow extends RowDataPacket {
   estado: string;
   password_hash: string;
   intentos_fallidos: number;
+  session_version: number;
 }
 
 type LocalUser = {
@@ -56,10 +57,12 @@ type LocalUser = {
   password_hash: string;
   intentosFallidos?: number;
   bloqueadoEn?: string;
+  sessionVersion: number;
 };
 
 const localUsersCookie = "agrosync_local_users";
 const maxLoginAttempts = 5;
+const allowLocalAuth = process.env.NODE_ENV !== "production";
 
 async function getLocalUsers() {
   const cookieStore = await cookies();
@@ -83,12 +86,51 @@ async function saveLocalUsers(users: LocalUser[]) {
   });
 }
 
-function roleForDepartment(departamento: string) {
-  return normalizeDepartamento(departamento) === "AdministradorIT" ? "Administrador IT" : "Administrador";
+function adminPasswordIsValid(value: string) {
+  const expected = process.env.ADMIN_GENERAL_PASSWORD;
+  if (!expected || expected.length < 12 || !value) return false;
+  const actualBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
-function adminPasswordIsValid(value: string) {
-  return value === (process.env.ADMIN_GENERAL_PASSWORD ?? "AgroSyncAdmin2026!");
+async function loginRateKey(email: string) {
+  const requestHeaders = await headers();
+  const forwarded = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const ip = forwarded || requestHeaders.get("x-real-ip") || "unknown";
+  return createHash("sha256").update(`${ip}:${email}`).digest("hex");
+}
+
+async function rateLimitMessage(key: string) {
+  if (!isDatabaseConfigured) return null;
+  const rows = await query<(RowDataPacket & { bloqueado_hasta: Date | string | null })[]>(
+    "SELECT bloqueado_hasta FROM auth_rate_limits WHERE key_hash = :key AND bloqueado_hasta > CURRENT_TIMESTAMP",
+    { key }
+  );
+  return rows[0] ? "Demasiados intentos. Espera 15 minutos antes de volver a intentar." : null;
+}
+
+async function recordRateLimitFailure(key: string) {
+  if (!isDatabaseConfigured) return;
+  await query<ResultSetHeader>(
+    `INSERT INTO auth_rate_limits (key_hash, intentos, ventana_iniciada, bloqueado_hasta)
+     VALUES (:key, 1, CURRENT_TIMESTAMP, NULL)
+     ON CONFLICT (key_hash) DO UPDATE SET
+       intentos = CASE WHEN auth_rate_limits.ventana_iniciada < CURRENT_TIMESTAMP - INTERVAL '15 minutes' THEN 1 ELSE auth_rate_limits.intentos + 1 END,
+       ventana_iniciada = CASE WHEN auth_rate_limits.ventana_iniciada < CURRENT_TIMESTAMP - INTERVAL '15 minutes' THEN CURRENT_TIMESTAMP ELSE auth_rate_limits.ventana_iniciada END,
+       bloqueado_hasta = CASE
+         WHEN (CASE WHEN auth_rate_limits.ventana_iniciada < CURRENT_TIMESTAMP - INTERVAL '15 minutes' THEN 1 ELSE auth_rate_limits.intentos + 1 END) >= 10
+         THEN CURRENT_TIMESTAMP + INTERVAL '15 minutes'
+         ELSE auth_rate_limits.bloqueado_hasta
+       END`,
+    { key }
+  );
+}
+
+async function clearRateLimit(key: string) {
+  if (isDatabaseConfigured) {
+    await query<ResultSetHeader>("DELETE FROM auth_rate_limits WHERE key_hash = :key", { key });
+  }
 }
 
 function validateLogin(email: string, password: string) {
@@ -135,7 +177,7 @@ async function findUser(email: string) {
   if (!isDatabaseConfigured) return null;
 
   const rows = await query<AuthUserRow[]>(
-    `SELECT id, nombre, apellido, email, rol, departamento, empresa_id, estado, password_hash, intentos_fallidos
+    `SELECT id, nombre, apellido, email, rol, departamento, empresa_id, estado, password_hash, intentos_fallidos, session_version
      FROM usuarios
      WHERE email = :email
      LIMIT 1`,
@@ -165,20 +207,20 @@ async function createSupportAlertForBlockedUser(user: AuthUserRow, attempts: num
 }
 
 async function registerDatabaseFailedAttempt(user: AuthUserRow) {
-  const attempts = Number(user.intentos_fallidos ?? 0) + 1;
+  const rows = await query<(RowDataPacket & { intentos_fallidos: number; estado: string })[]>(
+    `UPDATE usuarios
+     SET intentos_fallidos = LEAST(intentos_fallidos + 1, :maxAttempts),
+         estado = CASE WHEN intentos_fallidos + 1 >= :maxAttempts THEN 'Suspendido' ELSE estado END,
+         bloqueado_en = CASE WHEN intentos_fallidos + 1 >= :maxAttempts THEN CURRENT_TIMESTAMP ELSE bloqueado_en END
+     WHERE id = :id
+     RETURNING intentos_fallidos, estado`,
+    { id: user.id, maxAttempts: maxLoginAttempts }
+  );
+  const attempts = Number(rows[0]?.intentos_fallidos ?? maxLoginAttempts);
   if (attempts >= maxLoginAttempts) {
-    await query<ResultSetHeader>(
-      "UPDATE usuarios SET estado = 'Suspendido', intentos_fallidos = :attempts, bloqueado_en = CURRENT_TIMESTAMP WHERE id = :id",
-      { id: user.id, attempts: maxLoginAttempts }
-    );
     await createSupportAlertForBlockedUser(user, maxLoginAttempts);
     return `Usuario bloqueado por superar ${maxLoginAttempts} intentos. Comunicate con soporte tecnico.`;
   }
-
-  await query<ResultSetHeader>(
-    "UPDATE usuarios SET intentos_fallidos = :attempts WHERE id = :id",
-    { id: user.id, attempts }
-  );
   return `Credenciales invalidas. Intento ${attempts} de ${maxLoginAttempts}.`;
 }
 
@@ -189,9 +231,9 @@ async function resetDatabaseFailedAttempts(userId: string) {
   );
 }
 
-async function createCompany(nombre: string, email: string, telefono: string) {
+async function createCompany(execute: QueryExecutor, nombre: string, email: string, telefono: string) {
   const id = randomUUID();
-  await query<ResultSetHeader>(
+  await execute<ResultSetHeader>(
     `INSERT INTO empresas (
        id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, notas
      ) VALUES (
@@ -220,7 +262,14 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
     return { errors };
   }
 
+  const rateKey = await loginRateKey(email);
+  const limited = await rateLimitMessage(rateKey);
+  if (limited) return { message: limited };
+
   if (!isDatabaseConfigured) {
+    if (!allowLocalAuth) {
+      return { message: "La base compartida no esta disponible. El acceso local esta deshabilitado en produccion." };
+    }
     const users = await getLocalUsers();
     const localUser = users.find((user) => user.email === email);
     if (!localUser) {
@@ -264,6 +313,7 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
       rol: localUser.rol,
       departamento: normalizeDepartamento(localUser.departamento),
       empresaId: localUser.empresaId,
+      sessionVersion: Number(localUser.sessionVersion ?? 1),
     });
     redirect(departamentoHome(localUser.departamento));
   }
@@ -272,6 +322,7 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
   try {
     const user = await findUser(email);
     if (!user) {
+      await recordRateLimitFailure(rateKey);
       return { message: "Credenciales invalidas o usuario inactivo." };
     }
 
@@ -280,6 +331,7 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
     }
 
     if (!verifyPassword(password, user.password_hash)) {
+      await recordRateLimitFailure(rateKey);
       return { message: await registerDatabaseFailedAttempt(user) };
     }
 
@@ -290,10 +342,12 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
       rol: user.rol,
       departamento: normalizeDepartamento(user.departamento),
       empresaId: user.empresa_id,
+      sessionVersion: Number(user.session_version),
     });
     redirectTo = departamentoHome(user.departamento);
 
     await resetDatabaseFailedAttempts(user.id);
+    await clearRateLimit(rateKey);
   } catch {
     return { message: "No se pudo validar el acceso con la base de datos." };
   }
@@ -302,13 +356,14 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
 }
 
 export async function register(_state: RegisterState, formData: FormData): Promise<RegisterState> {
+  const publicIdentity = publicRegistrationIdentity();
   const data = {
     nombre: String(formData.get("nombre") ?? "").trim(),
     apellido: String(formData.get("apellido") ?? "").trim(),
     email: String(formData.get("email") ?? "").toLowerCase().trim(),
     telefono: String(formData.get("telefono") ?? "").trim(),
     empresa: String(formData.get("empresa") ?? "").trim(),
-    departamento: normalizeDepartamento(String(formData.get("departamento") ?? "")),
+    departamento: publicIdentity.departamento,
     password: String(formData.get("password") ?? ""),
     confirmPassword: String(formData.get("confirmPassword") ?? ""),
   };
@@ -319,13 +374,16 @@ export async function register(_state: RegisterState, formData: FormData): Promi
   }
 
   if (!isDatabaseConfigured) {
+    if (!allowLocalAuth) {
+      return { message: "La base compartida no esta disponible. No se crearon datos locales." };
+    }
     const users = await getLocalUsers();
     if (users.some((user) => user.email === data.email)) {
       return { errors: { email: "Ya existe un usuario con este correo." } };
     }
     const userId = `LOCAL-${randomUUID()}`;
     const empresaId = `LOCAL-${randomUUID()}`;
-    const rol = roleForDepartment(data.departamento);
+    const rol = publicIdentity.rol;
     await saveLocalUsers([
       ...users,
       {
@@ -340,6 +398,7 @@ export async function register(_state: RegisterState, formData: FormData): Promi
         departamento: data.departamento,
         estado: "Activo",
         intentosFallidos: 0,
+        sessionVersion: 1,
         password_hash: hashPassword(data.password),
       },
     ]);
@@ -350,6 +409,7 @@ export async function register(_state: RegisterState, formData: FormData): Promi
       rol,
       departamento: data.departamento,
       empresaId,
+      sessionVersion: 1,
     });
     redirect(departamentoHome(data.departamento));
   }
@@ -360,42 +420,45 @@ export async function register(_state: RegisterState, formData: FormData): Promi
       return { errors: { email: "Ya existe un usuario con este correo." } };
     }
 
-    const empresaId = await createCompany(data.empresa, data.email, data.telefono);
-    const userId = randomUUID();
-
-    await query<ResultSetHeader>(
-      `INSERT INTO usuarios (
-         id, empresa_id, nombre, apellido, email, telefono, rol, departamento, estado, password_hash, intentos_fallidos, notas
-       ) VALUES (
-         :id, :empresaId, :nombre, :apellido, :email, :telefono, :rol, :departamento, 'Activo', :passwordHash, 0, :notas
-       )`,
-      {
-        id: userId,
-        empresaId,
-        nombre: data.nombre,
-        apellido: data.apellido,
-        email: data.email,
-        telefono: data.telefono,
-        rol: roleForDepartment(data.departamento),
-        departamento: data.departamento,
-        passwordHash: hashPassword(data.password),
-        notas: "Usuario creado desde el login.",
-      }
-    );
+    const { empresaId, userId } = await withTransaction(async (execute) => {
+      const empresaId = await createCompany(execute, data.empresa, data.email, data.telefono);
+      const userId = randomUUID();
+      await execute<ResultSetHeader>(
+        `INSERT INTO usuarios (
+           id, empresa_id, nombre, apellido, email, telefono, rol, departamento, estado, password_hash, intentos_fallidos, notas
+         ) VALUES (
+           :id, :empresaId, :nombre, :apellido, :email, :telefono, :rol, :departamento, 'Activo', :passwordHash, 0, :notas
+         )`,
+        {
+          id: userId,
+          empresaId,
+          nombre: data.nombre,
+          apellido: data.apellido,
+          email: data.email,
+          telefono: data.telefono,
+          rol: publicIdentity.rol,
+          departamento: data.departamento,
+          passwordHash: hashPassword(data.password),
+          notas: "Usuario creado desde el login.",
+        }
+      );
+      return { empresaId, userId };
+    });
 
     await createSession({
       userId,
       email: data.email,
       nombre: `${data.nombre} ${data.apellido}`,
-      rol: roleForDepartment(data.departamento),
+      rol: publicIdentity.rol,
       departamento: data.departamento,
       empresaId,
+      sessionVersion: 1,
     });
   } catch {
-    return { message: "No se pudo crear el usuario. Revisa la conexion y el esquema de MySQL." };
+    return { message: "No se pudo crear el usuario. Revisa la conexion y el esquema de PostgreSQL." };
   }
 
-  redirect(departamentoHome(data.departamento));
+  redirect(departamentoHome(publicIdentity.departamento));
 }
 
 export async function logout() {
@@ -416,10 +479,18 @@ export async function updateSessionProfile(_state: SettingsState, formData: Form
   const departamento = normalizeDepartamento(String(formData.get("departamento") ?? session.departamento));
   const rol = roleForDepartment(departamento);
 
+  let nextSessionVersion = Number(session.sessionVersion);
   if (isDatabaseConfigured) {
     const [firstName, ...rest] = nombre.split(" ");
-    await query<ResultSetHeader>(
-      "UPDATE usuarios SET nombre = :nombre, apellido = :apellido, rol = :rol, departamento = :departamento WHERE id = :id",
+    const rows = await query<(RowDataPacket & { session_version: number })[]>(
+      `UPDATE usuarios
+       SET nombre = :nombre,
+           apellido = :apellido,
+           rol = :rol,
+           departamento = :departamento,
+           session_version = session_version + 1
+       WHERE id = :id AND estado = 'Activo'
+       RETURNING session_version`,
       {
         id: session.userId,
         nombre: firstName || nombre,
@@ -428,8 +499,11 @@ export async function updateSessionProfile(_state: SettingsState, formData: Form
         departamento,
       }
     );
-  } else {
+    if (!rows[0]) return { message: "No se pudo actualizar un usuario activo." };
+    nextSessionVersion = Number(rows[0].session_version);
+  } else if (allowLocalAuth) {
     const users = await getLocalUsers();
+    nextSessionVersion += 1;
     await saveLocalUsers(
       users.map((user) => {
         if (user.id !== session.userId) return user;
@@ -440,9 +514,12 @@ export async function updateSessionProfile(_state: SettingsState, formData: Form
           apellido: rest.join(" "),
           rol,
           departamento,
+          sessionVersion: nextSessionVersion,
         };
       })
     );
+  } else {
+    return { message: "La base compartida no esta disponible. No se aplicaron cambios locales." };
   }
 
   await createSession({
@@ -450,6 +527,7 @@ export async function updateSessionProfile(_state: SettingsState, formData: Form
     nombre,
     rol,
     departamento,
+    sessionVersion: nextSessionVersion,
   });
 
   return { ok: true, message: "Usuario actualizado correctamente." };

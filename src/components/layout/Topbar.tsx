@@ -9,6 +9,7 @@ import { logout, updateSessionProfile, type SettingsState } from "@/app/actions/
 import { departamentos, departamentoHome } from "@/lib/departments";
 import { cn } from "@/lib/utils";
 import { useSessionUser } from "@/hooks/useSessionUser";
+import { subscribeToRealtime } from "@/lib/realtime-client";
 
 // Exclusively the colors shared by the user at the start
 const brandColors = [
@@ -179,9 +180,11 @@ export default function Topbar({
     }
 
     void loadNotifications();
-    const interval = window.setInterval(loadNotifications, 30000);
+    const unsubscribe = subscribeToRealtime(() => void loadNotifications());
+    const interval = window.setInterval(loadNotifications, 15000);
     return () => {
       active = false;
+      unsubscribe();
       window.clearInterval(interval);
     };
   }, []);
@@ -201,7 +204,7 @@ export default function Topbar({
   return (
     <>
       <header
-        className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-[var(--border)] bg-white/78 px-4 shadow-[0_10px_30px_rgba(30,30,30,0.045)] backdrop-blur-xl sm:px-5"
+        className="sticky top-0 z-10 flex h-16 min-w-0 items-center gap-2 border-b border-[var(--border)] bg-white/78 px-3 shadow-[0_10px_30px_rgba(30,30,30,0.045)] backdrop-blur-xl sm:gap-4 sm:px-5"
       >
       {/* Mobile menu toggle */}
       <button
@@ -231,16 +234,17 @@ export default function Topbar({
             onClick={() => router.back()}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-foreground/50 hover:text-foreground hover:bg-[var(--secondary)] transition-all shrink-0 cursor-pointer"
             title="Volver"
+            aria-label="Volver a la página anterior"
           >
             <ArrowLeft size={14} />
           </button>
         )}
         <div className="min-w-0">
-          <h1 className="font-heading text-[17px] text-foreground truncate leading-tight">
+          <h1 className="truncate font-heading text-[15px] leading-tight text-foreground sm:text-[17px]">
             {title}
           </h1>
           {subtitle && (
-            <p className="font-body text-xs text-muted-foreground truncate">{subtitle}</p>
+            <p className="hidden truncate font-body text-xs text-muted-foreground sm:block">{subtitle}</p>
           )}
         </div>
       </div>
@@ -257,7 +261,7 @@ export default function Topbar({
       </div>
 
       {/* Color Customizer Circles directly in the Topbar */}
-      <div className="flex items-center gap-1.5 rounded-full border border-border bg-white/75 px-2.5 py-1.5 shadow-[var(--shadow-xs)]">
+      <div className="hidden items-center gap-1.5 rounded-full border border-border bg-white/75 px-2.5 py-1.5 shadow-[var(--shadow-xs)] lg:flex">
         {brandColors.map((color) => (
           <button
             key={color.hex}
@@ -268,6 +272,7 @@ export default function Topbar({
             )}
             style={{ backgroundColor: color.hex }}
             title={color.name}
+            aria-label={`Usar tema ${color.name}`}
           />
         ))}
       </div>
@@ -281,12 +286,13 @@ export default function Topbar({
           }}
           className="relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
           title="Notificaciones"
+          aria-label={`Notificaciones${unread > 0 ? `, ${unread} sin leer` : ""}`}
         >
           <Bell size={16} />
           {unread > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />}
         </button>
         {notificationsOpen && (
-          <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-md)]">
+          <div className="fixed left-2 right-2 top-16 mt-2 overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-md)] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:w-80">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <p className="font-heading text-sm text-foreground">Notificaciones</p>
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">{unread} nuevas</span>

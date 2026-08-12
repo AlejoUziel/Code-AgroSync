@@ -2,24 +2,27 @@
 
 import Link from "next/link";
 import { ChevronRight, FileBarChart2, MapPin, PackagePlus, Sprout, UserPlus } from "lucide-react";
+import { useSessionUser } from "@/hooks/useSessionUser";
 
 const actions = [
-  { label: "Nueva parcela", desc: "Mapa Honduras", icon: MapPin, href: "/ops/parcelas" },
-  { label: "Registrar cultivo", desc: "Ciclo agricola", icon: Sprout, href: "/ops/cultivos" },
-  { label: "Registrar cosecha", desc: "Produccion", icon: PackagePlus, href: "/ops/produccion" },
-  { label: "Nuevo empleado", desc: "Cuadrilla", icon: UserPlus, href: "/admin/empleados" },
-  { label: "Generar reporte", desc: "PDF tecnico", icon: FileBarChart2, href: "/tech/reportes" },
+  { label: "Nueva parcela", desc: "Mapa Honduras", icon: MapPin, href: "/ops/parcelas", departments: ["Operativo"] },
+  { label: "Registrar cultivo", desc: "Ciclo agricola", icon: Sprout, href: "/ops/cultivos", departments: ["Operativo"] },
+  { label: "Registrar cosecha", desc: "Produccion", icon: PackagePlus, href: "/ops/produccion", departments: ["Operativo"] },
+  { label: "Nuevo empleado", desc: "Cuadrilla", icon: UserPlus, href: "/admin/empleados", departments: ["Administrativo"] },
+  { label: "Generar reporte", desc: "PDF tecnico", icon: FileBarChart2, href: "/tech/reportes", departments: ["Tecnologico"] },
 ];
 
 export default function QuickActions() {
+  const user = useSessionUser();
+  const visibleActions = actions.filter((action) => user?.departamento === "AdministradorIT" || action.departments.includes(user?.departamento ?? ""));
   return (
     <div className="rounded-xl border border-[var(--border)] bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-heading text-sm text-[#1E1E1E]">Acciones rapidas</h2>
-        <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5 text-[10px] text-[var(--primary)]">5 activas</span>
+        <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5 text-[10px] text-[var(--primary)]">{visibleActions.length} activas</span>
       </div>
       <div className="space-y-2">
-        {actions.map((action) => (
+        {visibleActions.map((action) => (
           <Link
             key={action.label}
             href={action.href}

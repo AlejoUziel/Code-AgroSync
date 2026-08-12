@@ -37,9 +37,9 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="flex items-center justify-center px-6 py-10">
+        <section className="flex items-center justify-center px-4 py-6 sm:px-6 sm:py-10">
           <div className="w-full max-w-md">
-            <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="mb-6 flex items-center gap-3 sm:mb-8 lg:hidden">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--primary)] text-white">
                 <Leaf size={17} />
               </div>
@@ -51,7 +51,7 @@ export default function LoginPage() {
                 Ingresa o crea tu usuario para habilitar todos los modulos.
               </p>
             </div>
-            <div className="rounded-xl border border-[var(--border)] bg-card p-5 shadow-sm">
+            <div className="rounded-xl border border-[var(--border)] bg-card p-4 shadow-sm sm:p-5">
               <LoginForm />
             </div>
             <p className="mt-5 text-center text-xs text-muted-foreground">

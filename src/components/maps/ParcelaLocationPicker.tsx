@@ -54,13 +54,13 @@ export default function ParcelaLocationPicker({ lat, lng, onSelect }: ParcelaLoc
 
   return (
     <div className="sm:col-span-2 min-w-0 w-full max-w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background)]">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-2">
+      <div className="flex flex-col gap-1 border-b border-[var(--border)] px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
         <span className="text-xs font-medium-body text-[#1E1E1E]">Selecciona la ubicacion en el mapa de Honduras</span>
         <span className="text-[11px] text-[#6B7280]">
           Lat {selectedLat.toFixed(6)} · Lng {selectedLng.toFixed(6)}
         </span>
       </div>
-      <div className="h-[220px] min-w-0 w-full max-w-full overflow-hidden sm:h-[260px]">
+      <div className="h-[clamp(9rem,30dvh,16rem)] min-w-0 w-full max-w-full overflow-hidden">
         <MapContainer
           center={[selectedLat, selectedLng]}
           zoom={8}

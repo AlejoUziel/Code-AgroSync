@@ -1,6 +1,6 @@
 /**
  * useLocalDB — In-browser CRUD database using localStorage.
- * Drop-in replacement API designed for future MySQL migration.
+ * Development-only local data helper. Production modules use PostgreSQL APIs.
  *
  * Usage:
  *   const db = useLocalDB<Empresa>("empresas", seedEmpresas);

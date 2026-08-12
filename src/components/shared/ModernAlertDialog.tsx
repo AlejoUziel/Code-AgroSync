@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, AlertTriangle, Info, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type AlertType = "info" | "success" | "warning" | "error" | "confirm" | "prompt";
@@ -23,6 +23,8 @@ interface ModernAlertContextType {
   prompt: (options: AlertOptions | string) => Promise<string | null>;
 }
 
+type AlertResult = boolean | string | null;
+
 const ModernAlertContext = createContext<ModernAlertContextType | null>(null);
 
 export function useModernAlert() {
@@ -41,7 +43,7 @@ export function ModernAlertProvider({ children }: { children: React.ReactNode })
     type: "info",
   });
   const [promptValue, setPromptValue] = useState("");
-  const resolverRef = useRef<((value: any) => void) | null>(null);
+  const resolverRef = useRef<((value: AlertResult) => void) | null>(null);
 
   const show = useCallback((opts: AlertOptions, type: AlertType) => {
     setOptions({
@@ -52,7 +54,7 @@ export function ModernAlertProvider({ children }: { children: React.ReactNode })
     });
     setPromptValue(opts.defaultValue ?? "");
     setOpen(true);
-    return new Promise<any>((resolve) => {
+    return new Promise<AlertResult>((resolve) => {
       resolverRef.current = resolve;
     });
   }, []);

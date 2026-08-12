@@ -1,10 +1,10 @@
 /**
  * AgroSync Data Models
- * These TypeScript interfaces mirror the MySQL schema that will be used in production.
+ * These TypeScript interfaces mirror the PostgreSQL schema used in production.
  *
- * MySQL migration note:
+ * PostgreSQL mapping note:
  *   - Replace useLocalDB hooks with fetch() calls to your REST/GraphQL API
- *   - All IDs will become AUTO_INCREMENT INT or UUID in MySQL
+ *   - IDs are UUIDs or human-readable codes stored as VARCHAR
  *   - Timestamps become DATETIME columns
  */
 
@@ -21,7 +21,7 @@ export type RolUsuario =
 export type EstadoUsuario = "Activo" | "Inactivo" | "Suspendido";
 
 // ─── Empresa ──────────────────────────────────────────────────────────────────
-// MySQL: CREATE TABLE empresas (id VARCHAR(36) PRIMARY KEY, nombre VARCHAR(255), ...)
+// PostgreSQL: CREATE TABLE empresas (id VARCHAR(36) PRIMARY KEY, nombre VARCHAR(255), ...)
 export interface Empresa {
   id: string;
   nombre: string;
@@ -33,14 +33,14 @@ export interface Empresa {
   pais: string;
   plan: PlanTipo;
   estado: EstadoEmpresa;
-  fechaRegistro: string;  // ISO 8601 — MySQL DATETIME
+  fechaRegistro: string;  // ISO 8601 — PostgreSQL TIMESTAMPTZ
   totalUsuarios?: number;
   totalParcelas?: number;
   notas?: string;
 }
 
 // ─── Usuario ──────────────────────────────────────────────────────────────────
-// MySQL: CREATE TABLE usuarios (id VARCHAR(36) PRIMARY KEY, empresa_id VARCHAR(36) REFERENCES empresas(id), ...)
+// PostgreSQL: CREATE TABLE usuarios (id VARCHAR(36) PRIMARY KEY, empresa_id VARCHAR(36) REFERENCES empresas(id), ...)
 export interface Usuario {
   id: string;
   nombre: string;
@@ -50,7 +50,7 @@ export interface Usuario {
   rol: RolUsuario;
   empresaId: string;     // FK → empresas.id
   estado: EstadoUsuario;
-  fechaCreacion: string; // ISO 8601 — MySQL DATETIME
+  fechaCreacion: string; // ISO 8601 — PostgreSQL TIMESTAMPTZ
   ultimoAcceso?: string;
   notas?: string;
 }

@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -8,9 +7,9 @@
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Outfit', sans-serif;
+  --font-sans: var(--font-outfit), sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: 'Outfit', sans-serif;
+  --font-heading: var(--font-outfit), sans-serif;
 
   /* AgroSync Brand Colors */
   --color-agro-light: var(--accent);
@@ -146,19 +145,21 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-outfit), sans-serif;
     font-weight: 300;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background:
       linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(248,250,244,0.92) 42%, rgba(239,246,230,0.72) 100%),
       var(--background);
+    min-width: 320px;
+    overflow-x: hidden;
   }
   html {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-outfit), sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-outfit), sans-serif;
     font-weight: 700;
     letter-spacing: 0;
   }
@@ -171,15 +172,15 @@
 /* AgroSync Custom Utilities */
 @layer utilities {
   .font-heading {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-outfit), sans-serif;
     font-weight: 700;
   }
   .font-body {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-outfit), sans-serif;
     font-weight: 300;
   }
   .font-medium-body {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-outfit), sans-serif;
     font-weight: 400;
   }
 

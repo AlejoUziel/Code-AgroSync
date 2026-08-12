@@ -1,6 +1,5 @@
-import type { RowDataPacket } from "mysql2";
-import { isDatabaseConfigured, query } from "@/lib/db";
-import { readSession } from "@/lib/session";
+import { isDatabaseConfigured, query, type RowDataPacket } from "@/lib/db";
+import { accessErrorResponse, requireResourceAccess } from "@/lib/authorization";
 
 type NotificationRow = RowDataPacket & {
   id: string;
@@ -17,34 +16,30 @@ function formatDate(value: Date | string) {
 }
 
 export async function GET() {
-  const session = await readSession();
-  if (!session) {
-    return Response.json({ items: [], unread: 0 }, { status: 401 });
+  let session;
+  try {
+    session = await requireResourceAccess("alertas");
+  } catch (error) {
+    return accessErrorResponse(error, "No autorizado.", 401);
   }
 
   if (!isDatabaseConfigured) {
-    return Response.json({
-      items: [
-        {
-          id: "LOCAL-001",
-          tipo: "Sistema",
-          severidad: "Media",
-          mensaje: "Notificaciones internas habilitadas. Configura MySQL para guardar alertas reales.",
-          resuelta: false,
-          creadaEn: new Date().toISOString(),
-        },
-      ],
-      unread: 1,
-    });
+    return Response.json({ message: "PostgreSQL no esta configurado.", items: [], unread: 0 }, { status: 503 });
   }
 
-  const rows = await query<NotificationRow[]>(
-    `SELECT id, tipo, severidad, mensaje, resuelta, creada_en
-     FROM alertas
-     ORDER BY creada_en DESC
-     LIMIT 8`,
-    {}
-  );
+  let rows: NotificationRow[];
+  try {
+    rows = await query<NotificationRow[]>(
+      `SELECT id, tipo, severidad, mensaje, resuelta, creada_en
+       FROM alertas
+       WHERE deleted_at IS NULL AND empresa_id = :empresaId
+       ORDER BY creada_en DESC
+       LIMIT 8`,
+      { empresaId: session.empresaId },
+    );
+  } catch (error) {
+    return accessErrorResponse(error, "No se pudieron cargar las notificaciones.", 500);
+  }
 
   const items = rows.map((row) => ({
     id: row.id,

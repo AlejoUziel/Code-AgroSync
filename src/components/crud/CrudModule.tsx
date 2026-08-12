@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCrudResource } from "@/hooks/useCrudResource";
 import { HONDURAS_BOUNDS, HONDURAS_CENTER, calculateInventoryStatus, isInsideHonduras, resourceDefinitions, type ResourceField, type ResourceKey, type ResourceRecord } from "@/lib/resource-definitions";
+import { formatLempiras } from "@/lib/currency";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useModernAlert } from "@/components/shared/ModernAlertDialog";
 
@@ -70,12 +71,93 @@ function valueLabel(value: ResourceRecord[string]) {
 
 function SummaryCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="pro-card pro-card-hover rounded-2xl p-4">
+    <div className="pro-card pro-card-hover min-w-0 rounded-2xl p-3 sm:p-4">
       <p className="font-medium-body text-xs text-[var(--text-soft)]">{label}</p>
       <p className="font-heading text-2xl text-[#171A16] mt-1">{value}</p>
       <p className="font-body text-[11px] text-[#C4C4C4]">{sub}</p>
     </div>
   );
+}
+
+type SummaryMetric = {
+  label: string;
+  value: string;
+  sub: string;
+};
+
+function numericValue(record: ResourceRecord, key: string) {
+  const value = Number(record[key] ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function countWhere(records: ResourceRecord[], key: string, values: string[]) {
+  return records.filter((record) => values.includes(String(record[key] ?? ""))).length;
+}
+
+function resourceSummaryMetrics(resourceKey: ResourceKey, records: ResourceRecord[]): [SummaryMetric, SummaryMetric] {
+  switch (resourceKey) {
+    case "parcelas": {
+      const totalHectareas = records.reduce((total, record) => total + numericValue(record, "hectareas"), 0);
+      return [
+        { label: "Parcelas activas", value: String(countWhere(records, "estado", ["Activa"])), sub: "en operación" },
+        { label: "Superficie total", value: totalHectareas.toLocaleString("es-HN", { maximumFractionDigits: 1 }), sub: "hectáreas registradas" },
+      ];
+    }
+    case "cultivos":
+      return [
+        { label: "Cultivos en curso", value: String(countWhere(records, "estado", ["Nuevo", "En Progreso"])), sub: "ciclos productivos" },
+        { label: "Cultivos en alerta", value: String(countWhere(records, "estado", ["Alerta"])), sub: "requieren atención" },
+      ];
+    case "inventario": {
+      const inventoryValue = records.reduce(
+        (total, record) => total + numericValue(record, "stock") * numericValue(record, "costoUnitario"),
+        0
+      );
+      const criticalStock = records.filter((record) =>
+        ["Stock Bajo", "Agotado"].includes(String(record.estado ?? calculateInventoryStatus(record.stock, record.stockMinimo)))
+      ).length;
+      return [
+        { label: "Valor de inventario", value: formatLempiras(inventoryValue), sub: "stock a costo actual" },
+        { label: "Stock crítico", value: String(criticalStock), sub: "ítems por reponer" },
+      ];
+    }
+    case "cosechas": {
+      const totalToneladas = records.reduce((total, record) => total + numericValue(record, "toneladas"), 0);
+      return [
+        { label: "Producción acumulada", value: totalToneladas.toLocaleString("es-HN", { maximumFractionDigits: 1 }), sub: "toneladas cosechadas" },
+        { label: "Calidad premium", value: String(countWhere(records, "calidad", ["Premium"])), sub: "cosechas destacadas" },
+      ];
+    }
+    case "empleados": {
+      const payroll = records.reduce((total, record) => total + numericValue(record, "salarioMensual"), 0);
+      return [
+        { label: "Empleados activos", value: String(countWhere(records, "estado", ["Activo"])), sub: "personal disponible" },
+        { label: "Nómina mensual", value: formatLempiras(payroll), sub: "salarios en HNL" },
+      ];
+    }
+    case "finanzas": {
+      const income = records
+        .filter((record) => record.tipo === "Ingreso")
+        .reduce((total, record) => total + numericValue(record, "monto"), 0);
+      const expenses = records
+        .filter((record) => record.tipo === "Egreso")
+        .reduce((total, record) => total + numericValue(record, "monto"), 0);
+      return [
+        { label: "Ingresos", value: formatLempiras(income), sub: "total registrado" },
+        { label: "Balance", value: formatLempiras(income - expenses), sub: "ingresos menos egresos" },
+      ];
+    }
+    case "alertas":
+      return [
+        { label: "Alertas pendientes", value: String(countWhere(records, "resuelta", ["Pendiente"])), sub: "sin resolver" },
+        { label: "Prioridad alta", value: String(countWhere(records, "severidad", ["Alta"])), sub: "atención inmediata" },
+      ];
+    case "reportes":
+      return [
+        { label: "Reportes disponibles", value: String(countWhere(records, "estado", ["Listo", "Enviado"])), sub: "listos para consultar" },
+        { label: "Reportes enviados", value: String(countWhere(records, "estado", ["Enviado"])), sub: "distribuidos por correo" },
+      ];
+  }
 }
 
 function FieldInput({
@@ -146,9 +228,9 @@ function FieldInput({
 }
 
 export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
-  const { definition, records, loading, dbConfigured, create, update, remove } = useCrudResource(resourceKey);
-  const parcelasResource = useCrudResource("parcelas");
-  const cultivosResource = useCrudResource("cultivos");
+  const { definition, records, loading, syncing, realtimeConnected, syncError, create, update, remove } = useCrudResource(resourceKey);
+  const parcelasResource = useCrudResource("parcelas", resourceKey === "cultivos");
+  const cultivosResource = useCrudResource("cultivos", resourceKey === "cosechas");
   const Icon = iconMap[definition.icon];
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -174,6 +256,8 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
       return matchesSearch && matchesStatus;
     });
   }, [definition.searchKeys, definition.statusKey, records, search, status]);
+
+  const summaryMetrics = useMemo(() => resourceSummaryMetrics(resourceKey, records), [records, resourceKey]);
 
   const visibleFields = useMemo(
     () => definition.fields.filter((field) => !(resourceKey === "inventario" && field.key === "estado")),
@@ -366,15 +450,16 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
         <SummaryCard label={`Total ${definition.entityLabel}s`} value={String(records.length)} sub="registrados" />
         <SummaryCard label="Resultados" value={String(filtered.length)} sub="segun busqueda" />
-        <SummaryCard label="Persistencia" value={dbConfigured ? "MySQL" : "Local"} sub={dbConfigured ? "guardado automatico" : "sin DATABASE_URL"} />
-        <SummaryCard label="Estado" value={loading ? "Cargando" : "Listo"} sub="CRUD habilitado" />
+        {summaryMetrics.map((metric) => (
+          <SummaryCard key={metric.label} label={metric.label} value={metric.value} sub={metric.sub} />
+        ))}
       </div>
 
       {resourceKey === "parcelas" && (
-        <div className="pro-card flex items-center gap-3 rounded-2xl px-4 py-3">
+        <div className="pro-card flex items-start gap-3 rounded-2xl px-3 py-3 sm:items-center sm:px-4">
           <MapPin size={16} className="text-[var(--primary)]" />
           <p className="text-sm text-[#1E1E1E]">
             Mapa y geolocalizacion restringidos a Honduras.
@@ -383,8 +468,8 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
       )}
 
       <div className="pro-card overflow-hidden rounded-2xl">
-        <div className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] bg-white/48 p-4">
-          <div className="pro-focus flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 flex-1 min-w-[220px] max-w-sm">
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-white/48 p-3 sm:gap-3 sm:p-4">
+          <div className="pro-focus flex w-full min-w-0 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 sm:max-w-sm sm:flex-1">
             <Search size={13} className="text-[#9CA3AF]" />
             <input
               type="text"
@@ -409,20 +494,29 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
             </div>
           )}
 
+          <div className="flex items-center gap-1.5 whitespace-nowrap text-[10px] text-[#7A8678]" aria-live="polite">
+            <span className={`h-1.5 w-1.5 rounded-full ${syncError ? "bg-red-500" : "bg-[var(--primary)]"} ${syncing ? "animate-pulse" : ""}`} />
+            {syncError ? "Base compartida no disponible" : syncing ? "Sincronizando..." : realtimeConnected ? "En tiempo real" : "Actualizacion automatica"}
+          </div>
+
           <button
             onClick={openCreate}
-            className="ml-auto flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-medium-body text-white shadow-[0_10px_24px_rgba(142,191,36,0.22)] transition-colors hover:bg-[var(--primary-dark)] cursor-pointer"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-medium-body text-white shadow-[0_10px_24px_rgba(142,191,36,0.22)] transition-colors hover:bg-[var(--primary-dark)] cursor-pointer sm:ml-auto sm:w-auto sm:py-2"
           >
             <Plus size={13} /> Agregar {definition.entityLabel}
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
+          <table className="w-full min-w-[680px]">
             <thead>
               <tr className="border-b border-[var(--border)]">
                 {["ID", ...definition.tableFields.map((key) => definition.fields.find((field) => field.key === key)?.label ?? key), ""].map((heading) => (
-                  <th key={heading} className="bg-[var(--surface-2)]/60 text-left px-4 py-3 font-heading text-[10px] text-[#7A8678] uppercase tracking-wider whitespace-nowrap">
+                  <th
+                    key={heading || "actions"}
+                    aria-label={heading || "Acciones"}
+                    className="bg-[var(--surface-2)]/60 text-left px-4 py-3 font-heading text-[10px] text-[#7A8678] uppercase tracking-wider whitespace-nowrap"
+                  >
                     {heading}
                   </th>
                 ))}
@@ -461,6 +555,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
                             <button
                               onClick={() => openEdit(record)}
                               disabled={submitting}
+                              aria-label={`Editar ${definition.entityLabel} ${record.id}`}
                               className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer disabled:opacity-40"
                             >
                               <Edit2 size={13} />
@@ -479,6 +574,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
                               render={
                                 <a
                                   href={`/api/reports/${record.id}/pdf`}
+                                  aria-label={`Descargar PDF del reporte ${record.id}`}
                                   className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer"
                                 >
                                   <Download size={13} />
@@ -496,6 +592,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
                                 <button
                                   onClick={() => void sendCommunication(record, "Correo")}
                                   disabled={submitting}
+                                  aria-label={`Enviar reporte ${record.id} por correo`}
                                   className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer disabled:opacity-40"
                                 >
                                   <Mail size={13} />
@@ -517,6 +614,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
                                 <button
                                   onClick={() => void sendCommunication(record, "Correo")}
                                   disabled={submitting}
+                                  aria-label={`Enviar alerta ${record.id} por correo`}
                                   className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer disabled:opacity-40"
                                 >
                                   <Mail size={13} />
@@ -534,6 +632,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
                                 <button
                                   onClick={() => void sendCommunication(record, "WhatsApp")}
                                   disabled={submitting}
+                                  aria-label={`Enviar alerta ${record.id} por WhatsApp`}
                                   className="p-1.5 rounded-md hover:bg-[var(--secondary)] text-[#9CA3AF] hover:text-[var(--primary)] transition-colors cursor-pointer disabled:opacity-40"
                                 >
                                   <MessageCircle size={13} />
@@ -553,6 +652,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
                             <button
                               onClick={() => void deleteRecord(record)}
                               disabled={submitting}
+                              aria-label={`Eliminar ${definition.entityLabel} ${record.id}`}
                               className="p-1.5 rounded-md hover:bg-red-50 text-[#9CA3AF] hover:text-red-500 transition-colors cursor-pointer disabled:opacity-40"
                             >
                               <Trash2 size={13} />
@@ -580,11 +680,14 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
       </div>
 
       <Dialog open={open} onOpenChange={(v) => { if (!submitting) setOpen(v); }}>
-        <DialogContent className="sm:max-w-2xl border-[var(--border)] bg-card p-0 overflow-hidden shadow-2xl" showCloseButton={!submitting}>
-          <DialogHeader className="px-6 pt-5 pb-4 border-b border-[var(--border)] bg-white/20">
+        <DialogContent
+          className={`${resourceKey === "parcelas" ? "sm:max-w-4xl" : "sm:max-w-2xl"} max-h-[calc(100dvh-1rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden border-[var(--border)] bg-card p-0 shadow-2xl sm:max-h-[calc(100dvh-2rem)]`}
+          showCloseButton={!submitting}
+        >
+          <DialogHeader className="shrink-0 border-b border-[var(--border)] bg-white/20 px-4 py-3 sm:px-6 sm:pb-4 sm:pt-5">
             <DialogTitle>{editing ? "Editar" : "Nuevo"} {definition.entityLabel}</DialogTitle>
           </DialogHeader>
-          <div className="grid min-w-0 grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2">
+          <div className="grid min-h-0 min-w-0 grid-cols-1 gap-3 overflow-y-auto overscroll-contain px-4 py-4 sm:grid-cols-2 sm:gap-4 sm:px-6 sm:py-5">
             {resourceKey === "parcelas" && (
               <ParcelaLocationPicker
                 lat={Number(form.lat)}
@@ -621,7 +724,7 @@ export function CrudModule({ resourceKey }: { resourceKey: ResourceKey }) {
               </div>
             )}
           </div>
-          <DialogFooter className="px-6 py-4 border-t border-[var(--border)] bg-[var(--background)]">
+          <DialogFooter className="m-0 shrink-0 border-t border-[var(--border)] bg-[var(--background)] px-4 py-3 sm:px-6 sm:py-4">
             <button
               onClick={() => setOpen(false)}
               disabled={submitting}

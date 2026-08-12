@@ -1,5 +1,5 @@
 import { departamentoLabel, normalizeDepartamento } from "@/lib/departments";
-import { readSession } from "@/lib/session";
+import { deleteSession, readSession } from "@/lib/session";
 
 function initials(name: string) {
   return name
@@ -13,6 +13,7 @@ function initials(name: string) {
 export async function GET() {
   const session = await readSession();
   if (!session) {
+    await deleteSession();
     return Response.json({ user: null }, { status: 401 });
   }
 

@@ -20,7 +20,7 @@ import {
   EstadoEmpresa,
   PlanTipo,
 } from "@/types/models";
-import { Building2, Mail, Phone, MapPin, Globe, FileText, Loader2 } from "lucide-react";
+import { Building2, Mail, Phone, MapPin, FileText, Loader2 } from "lucide-react";
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 type FormErrors = Partial<Record<keyof Empresa, string>>;

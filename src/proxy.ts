@@ -2,10 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { cookieName } from "@/lib/session";
 import { canAccessDepartamentoPath, departamentoHome } from "@/lib/departments";
+import { getSessionSecret } from "@/lib/session-secret";
 
-function getSecret() {
-  const secret = process.env.SESSION_SECRET ?? "agrosync-dev-session-secret-change-me";
-  return new TextEncoder().encode(secret);
+function clearInvalidSession(response: NextResponse) {
+  response.cookies.delete(cookieName);
+  return response;
 }
 
 export async function proxy(request: NextRequest) {
@@ -14,10 +15,13 @@ export async function proxy(request: NextRequest) {
 
   if (pathname === "/login" && token) {
     try {
-      const { payload } = await jwtVerify(token, getSecret());
+      const { payload } = await jwtVerify(token, getSessionSecret());
+      if (!Number.isInteger(Number(payload.sessionVersion))) {
+        return clearInvalidSession(NextResponse.next());
+      }
       return NextResponse.redirect(new URL(departamentoHome(String(payload.departamento ?? "")), request.url));
     } catch {
-      return NextResponse.next();
+      return clearInvalidSession(NextResponse.next());
     }
   }
 
@@ -32,7 +36,10 @@ export async function proxy(request: NextRequest) {
   }
 
   try {
-    const { payload } = await jwtVerify(token, getSecret());
+    const { payload } = await jwtVerify(token, getSessionSecret());
+    if (!Number.isInteger(Number(payload.sessionVersion))) {
+      return clearInvalidSession(NextResponse.redirect(new URL("/login", request.url)));
+    }
     if (pathname === "/" || ["/admin", "/ops", "/tech"].some((prefix) => pathname.startsWith(prefix))) {
       if (!canAccessDepartamentoPath(String(payload.departamento ?? ""), pathname)) {
         return NextResponse.redirect(new URL(departamentoHome(String(payload.departamento ?? "")), request.url));
@@ -40,7 +47,7 @@ export async function proxy(request: NextRequest) {
     }
     return NextResponse.next();
   } catch {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return clearInvalidSession(NextResponse.redirect(new URL("/login", request.url)));
   }
 }
 

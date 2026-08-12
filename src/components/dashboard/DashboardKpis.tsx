@@ -5,6 +5,7 @@ import { MapPinned, Sprout, Tractor, UsersRound } from "lucide-react";
 import KpiCard from "@/components/dashboard/KpiCard";
 import type { ResourceRecord } from "@/lib/resource-definitions";
 import type { Usuario } from "@/types/models";
+import { subscribeToRealtime } from "@/lib/realtime-client";
 
 type ResourceResponse = {
   items?: ResourceRecord[];
@@ -71,10 +72,10 @@ export default function DashboardKpis() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let active = true;
 
-    async function loadDashboardData() {
-      setLoading(true);
+    async function loadDashboardData(showLoading = false) {
+      if (showLoading) setLoading(true);
       try {
         const [parcelas, cultivos, cosechas, empleados, usuarios] = await Promise.all([
           loadResource("parcelas"),
@@ -84,16 +85,30 @@ export default function DashboardKpis() {
           loadUsers(),
         ]);
 
-        if (!controller.signal.aborted) {
+        if (active) {
           setData({ parcelas, cultivos, cosechas, empleados, usuarios });
         }
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (active && showLoading) setLoading(false);
       }
     }
 
-    void loadDashboardData();
-    return () => controller.abort();
+    const refresh = () => {
+      if (document.visibilityState === "visible") void loadDashboardData(false);
+    };
+    void loadDashboardData(true);
+    const unsubscribe = subscribeToRealtime(refresh);
+    const interval = window.setInterval(refresh, 15000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+
+    return () => {
+      active = false;
+      unsubscribe();
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, []);
 
   const kpis = useMemo(() => {
@@ -116,7 +131,7 @@ export default function DashboardKpis() {
         change: loading ? "cargando" : `${percent(activeParcelas, data.parcelas.length)}% activas`,
         trend: "up" as const,
         icon: MapPinned,
-        detail: loading ? "Consultando MySQL" : `${numberFormat(totalHectareas, 1)} ha registradas`,
+        detail: loading ? "Consultando PostgreSQL" : `${numberFormat(totalHectareas, 1)} ha registradas`,
         progress: percent(activeParcelas, data.parcelas.length),
         tone: "green" as const,
       },
