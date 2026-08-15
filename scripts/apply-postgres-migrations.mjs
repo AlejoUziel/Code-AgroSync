@@ -29,7 +29,7 @@ if (!connectionString?.startsWith("postgres")) {
   throw new Error("DATABASE_URL PostgreSQL inválida.");
 }
 
-const migrationFiles = ["db/postgres-hardening.sql", "db/postgres-realtime.sql"];
+const migrationFiles = ["db/postgres-hardening.sql", "db/postgres-realtime.sql", "db/05-public-business-codes.sql"];
 const client = new pg.Client({ connectionString: hardenedPostgresUrl(connectionString) });
 
 await client.connect();

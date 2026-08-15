@@ -64,6 +64,7 @@ export default function EmpresaDetail({
               </div>
               <div>
                 <h2 className="font-heading text-base text-white">{empresa.nombre}</h2>
+                <p className="font-heading text-xs text-[var(--accent)] mt-0.5">{empresa.codigo ?? empresa.id}</p>
                 <p className="font-body text-xs text-white/50 mt-0.5">{empresa.nit}</p>
               </div>
             </div>
@@ -133,6 +134,7 @@ export default function EmpresaDetail({
                       <p className="font-medium-body text-xs text-[#1E1E1E] truncate">
                         {u.nombre} {u.apellido}
                       </p>
+                      <p className="font-heading text-[9px] text-[var(--primary)]">{u.codigo ?? u.id}</p>
                       <p className="font-body text-[10px] text-[#9CA3AF] truncate">{u.email}</p>
                     </div>
                     <Badge className={`text-[9px] px-1.5 border-0 shrink-0 ${rolColors[u.rol] ?? "bg-gray-100 text-gray-600"}`}>

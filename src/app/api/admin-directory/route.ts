@@ -7,6 +7,7 @@ import type { Empresa, EstadoUsuario, RolUsuario, Usuario } from "@/types/models
 
 interface UserRow extends RowDataPacket {
   id: string;
+  codigo: string;
   nombre: string;
   apellido: string;
   email: string;
@@ -20,6 +21,7 @@ interface UserRow extends RowDataPacket {
 
 interface CompanyRow extends RowDataPacket {
   id: string;
+  codigo: string;
   nombre: string;
   nit: string;
   email: string;
@@ -57,6 +59,7 @@ function iso(value: Date | string | null) {
 function userFromRow(row: UserRow) {
   return {
     id: row.id,
+    codigo: row.codigo,
     nombre: row.nombre,
     apellido: row.apellido,
     email: row.email,
@@ -72,6 +75,7 @@ function userFromRow(row: UserRow) {
 function companyFromRow(row: CompanyRow) {
   return {
     id: row.id,
+    codigo: row.codigo,
     nombre: row.nombre,
     nit: row.nit,
     email: row.email,
@@ -88,7 +92,7 @@ function companyFromRow(row: CompanyRow) {
 
 async function findCompanyById(id: string) {
   const rows = await query<CompanyRow[]>(
-    `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+    `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
      FROM empresas
      WHERE id = :id
      LIMIT 1`,
@@ -145,9 +149,9 @@ export async function GET(request: Request) {
 
   if (tab === "empresas") {
     const rows = await query<CompanyRow[]>(
-      `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+      `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
        FROM empresas
-       WHERE nombre LIKE :q OR nit LIKE :q OR email LIKE :q OR ciudad LIKE :q
+       WHERE codigo LIKE :q OR nombre LIKE :q OR nit LIKE :q OR email LIKE :q OR ciudad LIKE :q
        ORDER BY nombre
        LIMIT 100`,
       { q }
@@ -160,9 +164,9 @@ export async function GET(request: Request) {
   }
 
   const rows = await query<UserRow[]>(
-    `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+    `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
      FROM usuarios
-     WHERE nombre LIKE :q OR apellido LIKE :q OR email LIKE :q OR rol LIKE :q
+     WHERE codigo LIKE :q OR nombre LIKE :q OR apellido LIKE :q OR email LIKE :q OR rol LIKE :q
      ORDER BY nombre, apellido
      LIMIT 100`,
     { q }
@@ -192,7 +196,7 @@ export async function POST(request: Request) {
     }
 
     const existingCompany = await query<CompanyRow[]>(
-      `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+      `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
        FROM empresas
        WHERE nit = :nit OR email = :email
        LIMIT 1`,
@@ -206,7 +210,7 @@ export async function POST(request: Request) {
     let id = body.id || randomUUID();
     if (!body.id && session?.empresaId) {
       const existingSessionCompany = await query<CompanyRow[]>(
-        `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+        `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
          FROM empresas
          WHERE id = :id
          LIMIT 1`,
@@ -246,7 +250,7 @@ export async function POST(request: Request) {
     }
 
     const rows = await query<CompanyRow[]>(
-      `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+      `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
        FROM empresas
        WHERE id = :id
        LIMIT 1`,
@@ -265,7 +269,7 @@ export async function POST(request: Request) {
   const id = body.id || randomUUID();
   const createdAt = body.fechaCreacion ? new Date(body.fechaCreacion) : new Date();
   const existingUser = await query<UserRow[]>(
-    `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+    `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
      FROM usuarios
      WHERE email = :email
      LIMIT 1`,
@@ -311,7 +315,7 @@ export async function POST(request: Request) {
   }
 
   const rows = await query<UserRow[]>(
-    `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+    `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
      FROM usuarios
      WHERE id = :id
      LIMIT 1`,
@@ -344,7 +348,7 @@ export async function PUT(request: Request) {
 
     try {
       const duplicateCompany = await query<CompanyRow[]>(
-        `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+        `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
          FROM empresas
          WHERE (nit = :nit OR email = :email) AND id <> :id
          LIMIT 1`,
@@ -405,7 +409,7 @@ export async function PUT(request: Request) {
 
   try {
     const duplicateUser = await query<UserRow[]>(
-      `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+      `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
        FROM usuarios
        WHERE email = :email AND id <> :id
        LIMIT 1`,
@@ -456,7 +460,7 @@ export async function PUT(request: Request) {
   }
 
   const rows = await query<UserRow[]>(
-    `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+    `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
      FROM usuarios
      WHERE id = :id
      LIMIT 1`,

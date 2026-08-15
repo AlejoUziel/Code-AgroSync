@@ -201,6 +201,7 @@ export default function UsuariosPage() {
     return usuarioRecords.filter((u) => {
       const matchQ =
         !q ||
+        (u.codigo ?? u.id).toLowerCase().includes(q) ||
         `${u.nombre} ${u.apellido}`.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q);
       const matchRol = !filterRol || u.rol === filterRol;
@@ -215,6 +216,7 @@ export default function UsuariosPage() {
     return empresaRecords.filter(
       (e) =>
         !q ||
+        (e.codigo ?? e.id).toLowerCase().includes(q) ||
         e.nombre.toLowerCase().includes(q) ||
         e.nit.toLowerCase().includes(q) ||
         e.email.toLowerCase().includes(q)
@@ -632,6 +634,7 @@ export default function UsuariosPage() {
                               <p className="font-medium-body text-xs text-[#1E1E1E]">
                                 {u.nombre} {u.apellido}
                               </p>
+                              <p className="font-heading text-[10px] text-[var(--primary)]">{u.codigo ?? u.id}</p>
                               <p className="font-body text-[11px] text-[#9CA3AF]">{u.email}</p>
                             </div>
                           </div>
@@ -738,6 +741,7 @@ export default function UsuariosPage() {
                             </div>
                             <div>
                               <p className="font-medium-body text-xs text-[#1E1E1E]">{e.nombre}</p>
+                              <p className="font-heading text-[10px] text-[var(--primary)]">{e.codigo ?? e.id}</p>
                               <p className="font-body text-[11px] text-[#9CA3AF] truncate max-w-[140px]">{e.email}</p>
                             </div>
                           </div>
