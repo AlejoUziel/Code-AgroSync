@@ -13,6 +13,8 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(cookieName)?.value;
 
+  const publicAuthPage = pathname === "/login" || pathname === "/recuperar-contrasena" || pathname === "/restablecer-contrasena";
+
   if (pathname === "/login" && token) {
     try {
       const { payload } = await jwtVerify(token, getSessionSecret());
@@ -25,7 +27,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (pathname === "/login") {
+  if (publicAuthPage) {
     return NextResponse.next();
   }
 
@@ -41,7 +43,11 @@ export async function proxy(request: NextRequest) {
       return clearInvalidSession(NextResponse.redirect(new URL("/login", request.url)));
     }
     if (pathname === "/" || ["/admin", "/ops", "/tech"].some((prefix) => pathname.startsWith(prefix))) {
-      if (!canAccessDepartamentoPath(String(payload.departamento ?? ""), pathname)) {
+      const isPlatformAdmin = payload.platformRole === "platform_admin";
+      const isOrganizationAdmin = payload.rol === "Administrador";
+      const isPlatformDirectory = pathname.startsWith("/admin/usuarios");
+      const allowed = isPlatformAdmin || (isOrganizationAdmin && !isPlatformDirectory) || canAccessDepartamentoPath(String(payload.departamento ?? ""), pathname);
+      if (!allowed || (isPlatformDirectory && !isPlatformAdmin)) {
         return NextResponse.redirect(new URL(departamentoHome(String(payload.departamento ?? "")), request.url));
       }
     }

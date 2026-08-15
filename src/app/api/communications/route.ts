@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { isDatabaseConfigured, query, type ResultSetHeader } from "@/lib/db";
+import { isDatabaseConfigured, withTenantTransaction, type ResultSetHeader } from "@/lib/db";
 import { isSmtpConfigured, sendEmail } from "@/lib/email";
 import { accessErrorResponse, assertSameOrigin, requireResourceAccess } from "@/lib/authorization";
 import { isResourceKey } from "@/lib/resource-store";
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   }
 
   if (isDatabaseConfigured) {
-    await query<ResultSetHeader>(
+    await withTenantTransaction(session.empresaId, (execute) => execute<ResultSetHeader>(
       `INSERT INTO comunicacion_envios (
          id, empresa_id, recurso, recurso_id, canal, destino, asunto, mensaje
        ) VALUES (
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         asunto,
         mensaje,
       }
-    );
+    ));
   }
 
   const link =

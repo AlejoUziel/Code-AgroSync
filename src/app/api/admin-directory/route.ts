@@ -3,6 +3,7 @@ import { isDatabaseConfigured, query, type ResultSetHeader, type RowDataPacket }
 import { hashPassword } from "@/lib/password";
 import { readSession } from "@/lib/session";
 import { accessErrorResponse, assertSameOrigin, requireAdministratorIT } from "@/lib/authorization";
+import { recordSecurityEvent } from "@/lib/security-events";
 import type { Empresa, EstadoUsuario, RolUsuario, Usuario } from "@/types/models";
 
 interface UserRow extends RowDataPacket {
@@ -257,6 +258,14 @@ export async function POST(request: Request) {
       { id }
     );
 
+    await recordSecurityEvent({
+      empresaId: session?.empresaId,
+      actorUserId: session?.userId,
+      action: "platform.company.create",
+      targetType: "empresa",
+      targetId: id,
+      result: "exito",
+    });
     return Response.json({ dbConfigured: true, item: companyFromRow(rows[0]) }, { status: 201 });
   }
 
@@ -322,6 +331,15 @@ export async function POST(request: Request) {
     { id }
   );
 
+  await recordSecurityEvent({
+    empresaId: session?.empresaId,
+    actorUserId: session?.userId,
+    action: "platform.user.create",
+    targetType: "usuario",
+    targetId: id,
+    result: "exito",
+    metadata: { targetCompanyId: body.empresaId },
+  });
   return Response.json({ dbConfigured: true, item: userFromRow(rows[0]) }, { status: 201 });
 }
 
@@ -333,6 +351,7 @@ export async function PUT(request: Request) {
   }
 
   const url = new URL(request.url);
+  const session = await readSession();
   const id = url.searchParams.get("id");
 
   if (!id) {
@@ -398,6 +417,14 @@ export async function PUT(request: Request) {
 
     const item = await findCompanyById(id);
     if (!item) return Response.json({ message: "Empresa no encontrada." }, { status: 404 });
+    await recordSecurityEvent({
+      empresaId: session?.empresaId,
+      actorUserId: session?.userId,
+      action: "platform.company.update",
+      targetType: "empresa",
+      targetId: id,
+      result: "exito",
+    });
     return Response.json({ dbConfigured: true, item });
   }
 
@@ -471,6 +498,15 @@ export async function PUT(request: Request) {
     return Response.json({ message: "Usuario no encontrado." }, { status: 404 });
   }
 
+  await recordSecurityEvent({
+    empresaId: session?.empresaId,
+    actorUserId: session?.userId,
+    action: "platform.user.update",
+    targetType: "usuario",
+    targetId: id,
+    result: "exito",
+    metadata: { targetCompanyId: body.empresaId },
+  });
   return Response.json({ dbConfigured: true, item: userFromRow(rows[0]) });
 }
 
@@ -482,6 +518,7 @@ export async function DELETE(request: Request) {
   }
 
   const url = new URL(request.url);
+  const session = await readSession();
   const id = url.searchParams.get("id");
 
   if (!id) {
@@ -501,6 +538,16 @@ export async function DELETE(request: Request) {
       { status: 409 }
     );
   }
+
+  const targetType = url.searchParams.get("tab") === "empresas" ? "empresa" : "usuario";
+  await recordSecurityEvent({
+    empresaId: session?.empresaId,
+    actorUserId: session?.userId,
+    action: `platform.${targetType}.delete`,
+    targetType,
+    targetId: id,
+    result: "exito",
+  });
 
   return Response.json({ dbConfigured: true, ok: true });
 }

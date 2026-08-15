@@ -1,4 +1,4 @@
-import { isDatabaseConfigured, query, type RowDataPacket } from "@/lib/db";
+import { isDatabaseConfigured, withTenantTransaction, type RowDataPacket } from "@/lib/db";
 import { accessErrorResponse, requireResourceAccess } from "@/lib/authorization";
 
 type NotificationRow = RowDataPacket & {
@@ -29,14 +29,14 @@ export async function GET() {
 
   let rows: NotificationRow[];
   try {
-    rows = await query<NotificationRow[]>(
+    rows = await withTenantTransaction(session.empresaId, (execute) => execute<NotificationRow[]>(
       `SELECT id, tipo, severidad, mensaje, resuelta, creada_en
        FROM alertas
        WHERE deleted_at IS NULL AND empresa_id = :empresaId
        ORDER BY creada_en DESC
        LIMIT 8`,
       { empresaId: session.empresaId },
-    );
+    ));
   } catch (error) {
     return accessErrorResponse(error, "No se pudieron cargar las notificaciones.", 500);
   }

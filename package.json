@@ -1,6 +1,6 @@
 {
   "name": "agrosync-next",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test": "vitest",
     "test:run": "vitest run",
-    "db:migrate": "node scripts/apply-postgres-migrations.mjs"
+    "db:migrate": "node scripts/apply-postgres-migrations.mjs",
+    "db:migrate:mysql": "node scripts/apply-mysql-business-codes.mjs",
+    "db:verify:saas": "node scripts/verify-saas-foundation.mjs",
+    "db:provision:app-role": "node scripts/provision-postgres-app-role.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

@@ -9,6 +9,6 @@ export function roleForDepartment(departamento: string) {
 export function publicRegistrationIdentity() {
   return {
     departamento: PUBLIC_REGISTRATION_DEPARTMENT,
-    rol: roleForDepartment(PUBLIC_REGISTRATION_DEPARTMENT),
+    rol: "Administrador",
   };
 }

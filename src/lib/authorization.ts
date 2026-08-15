@@ -28,7 +28,7 @@ const resourceDepartments: Record<ResourceKey, string[]> = {
 };
 
 export function canAccessResource(session: SessionPayload, resource: ResourceKey) {
-  return session.departamento === "AdministradorIT" || resourceDepartments[resource].includes(session.departamento);
+  return session.platformRole === "platform_admin" || session.rol === "Administrador" || resourceDepartments[resource].includes(session.departamento);
 }
 
 export async function requireSession() {
@@ -47,8 +47,8 @@ export async function requireResourceAccess(resource: ResourceKey) {
 
 export async function requireAdministratorIT() {
   const session = await requireSession();
-  if (session.departamento !== "AdministradorIT") {
-    throw new AccessError("Se requiere acceso de Administrador IT.");
+  if (session.platformRole !== "platform_admin") {
+    throw new AccessError("Se requiere acceso de administrador de plataforma.");
   }
   return session;
 }

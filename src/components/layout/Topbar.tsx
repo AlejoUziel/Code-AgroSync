@@ -6,7 +6,7 @@ import { Bell, Search, ChevronDown, Menu, LogOut, Settings, ArrowLeft } from "lu
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { logout, updateSessionProfile, type SettingsState } from "@/app/actions/auth";
-import { departamentos, departamentoHome } from "@/lib/departments";
+import { departamentoHome } from "@/lib/departments";
 import { cn } from "@/lib/utils";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { subscribeToRealtime } from "@/lib/realtime-client";
@@ -209,7 +209,7 @@ export default function Topbar({
       {/* Mobile menu toggle */}
       <button
         onClick={onMenuToggle}
-        className="text-foreground/50 hover:text-foreground transition-colors lg:hidden"
+        className="grid h-11 w-11 place-items-center rounded-lg text-foreground/50 hover:bg-[var(--secondary)] hover:text-foreground transition-colors lg:hidden"
         aria-label="Toggle menu"
       >
         <Menu size={18} />
@@ -219,7 +219,7 @@ export default function Topbar({
       {sidebarCollapsed && (
         <button
           onClick={onMenuToggle}
-          className="hidden lg:block text-foreground/40 hover:text-foreground transition-colors"
+          className="hidden h-11 w-11 place-items-center rounded-lg text-foreground/40 hover:bg-[var(--secondary)] hover:text-foreground transition-colors lg:grid"
           aria-label="Expand sidebar"
         >
           <Menu size={16} />
@@ -376,7 +376,7 @@ export default function Topbar({
           <DialogHeader className="px-5 pt-5 pb-4 border-b border-[var(--border)]">
             <DialogTitle>Configuracion de Usuario</DialogTitle>
             <p className="text-xs text-muted-foreground">
-              Editar o cambiar usuario requiere validacion de Administrador General.
+              Actualiza tu nombre visible. Los permisos se administran desde el directorio autorizado.
             </p>
           </DialogHeader>
           <form action={settingsAction} className="space-y-4 px-5 py-4">
@@ -385,30 +385,6 @@ export default function Topbar({
               <input
                 name="nombre"
                 defaultValue={user?.nombre ?? ""}
-                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium-body text-[#1E1E1E]">Departamento o acceso</span>
-              <select
-                name="departamento"
-                defaultValue={user?.departamento ?? "Administrativo"}
-                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
-              >
-                {departamentos.map((departamento) => (
-                  <option key={departamento.value} value={departamento.value}>
-                    {departamento.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium-body text-[#1E1E1E]">Clave Administrador General</span>
-              <input
-                name="adminPassword"
-                type="password"
-                required
-                placeholder="Clave requerida"
                 className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
               />
             </label>
@@ -430,7 +406,7 @@ export default function Topbar({
                 disabled={settingsPending}
                 className="px-5 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] disabled:opacity-60"
               >
-                {settingsPending ? "Validando..." : "Guardar cambios"}
+                {settingsPending ? "Guardando..." : "Guardar cambios"}
               </button>
             </DialogFooter>
           </form>

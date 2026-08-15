@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { Building2, Eye, EyeOff, Lock, LogIn, Mail, Phone, User, UserPlus, Loader2 } from "lucide-react";
 import { login, register, type LoginState, type RegisterState } from "@/app/actions/auth";
 
@@ -75,6 +76,10 @@ export default function LoginForm() {
               </div>
               {loginState?.errors?.email && <p className="mt-1 text-xs text-red-500">{loginState.errors.email}</p>}
             </div>
+
+            <Link href="/recuperar-contrasena" className="block text-right text-xs text-[var(--primary)] hover:underline">
+              ¿Olvidaste tu contrasena?
+            </Link>
 
             <div>
               <label htmlFor="password" className="font-medium-body text-xs text-foreground">
@@ -169,10 +174,10 @@ export default function LoginForm() {
             <div className="rounded-lg border border-[var(--border)] bg-[var(--secondary)]/55 px-3 py-2.5">
               <div className="flex items-center gap-2 text-xs font-medium-body text-foreground">
                 <Building2 size={15} className={iconClass} />
-                Acceso inicial: Operativo
+                Acceso inicial: Administrador de empresa
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Los permisos administrativos solo pueden ser asignados por un Administrador IT autorizado.
+                Podras administrar los modulos de tu empresa, sin acceso a otras organizaciones.
               </p>
             </div>
 
@@ -259,7 +264,7 @@ export default function LoginForm() {
             </div>
 
             {registerState?.message && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 animate-fade-up">
+              <div className={`rounded-lg border px-3 py-2 text-xs animate-fade-up ${registerState.ok ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-600"}`}>
                 {registerState.message}
               </div>
             )}
@@ -277,7 +282,7 @@ export default function LoginForm() {
               ) : (
                 <>
                   <UserPlus size={15} />
-                  Crear usuario e ingresar
+                  Crear cuenta
                 </>
               )}
             </button>
