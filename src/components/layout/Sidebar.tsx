@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   ChevronDown,
@@ -24,6 +24,8 @@ import {
   Menu,
   X,
   ShieldCheck,
+  CreditCard,
+  UserPlus,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +65,16 @@ const navGroups: NavGroup[] = [
         label: "Finanzas",
         href: "/admin/finanzas",
         icon: <Wallet size={15} />,
+      },
+      {
+        label: "Invitaciones",
+        href: "/admin/equipo",
+        icon: <UserPlus size={15} />,
+      },
+      {
+        label: "Facturación SaaS",
+        href: "/admin/facturacion",
+        icon: <CreditCard size={15} />,
       },
     ],
   },
@@ -133,8 +145,10 @@ function SidebarTooltip({ children, label, enabled }: { children: React.ReactEle
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const user = useSessionUser();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [organizations, setOrganizations] = useState<{ id: string; nombre: string }[]>([]);
   const [settingsState, settingsAction, settingsPending] = useActionState<SettingsState, FormData>(
     updateSessionProfile,
     {}
@@ -156,6 +170,23 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     }
   }, [settingsState.ok]);
 
+  useEffect(() => {
+    fetch("/api/organizations", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => setOrganizations(data?.items ?? []))
+      .catch(() => setOrganizations([]));
+  }, []);
+
+  const switchOrganization = async (empresaId: string) => {
+    if (!empresaId || empresaId === user?.empresaId) return;
+    const response = await fetch("/api/organizations", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ empresaId }),
+    });
+    if (response.ok) router.push("/");
+  };
+
   const visibleGroups = navGroups
     .filter((group) => {
       if (!user) return false;
@@ -165,7 +196,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     })
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.href !== "/admin/usuarios" || user?.platformRole === "platform_admin"),
+      items: group.items.filter((item) => {
+        if (item.href === "/admin/usuarios") return user?.platformRole === "platform_admin";
+        if (["/admin/equipo", "/admin/facturacion"].includes(item.href)) {
+          return user?.platformRole === "platform_admin" || user?.rol === "Administrador";
+        }
+        return true;
+      }),
     }))
     .filter((group) => group.items.length > 0);
   const homeHref = departamentoHome(user?.departamento);
@@ -329,11 +366,26 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* Bottom user area */}
         <div className="shrink-0 border-t border-white/8 p-3">
           {!collapsed && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2">
+            <div className="mb-3 space-y-2">
+              {organizations.length > 1 && (
+                <select
+                  aria-label="Organización activa"
+                  value={user?.empresaId ?? ""}
+                  onChange={(event) => void switchOrganization(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-white/10 bg-[#20251d] px-2 text-xs text-white/80 outline-none"
+                >
+                  {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.nombre}</option>)}
+                </select>
+              )}
+              <Link href="/configuracion/seguridad" className="flex min-h-11 items-center gap-2 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-white/70 hover:text-white">
+                <ShieldCheck size={14} className="text-accent" /> Seguridad y MFA
+              </Link>
+              <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2">
               <ShieldCheck size={14} className="text-accent" />
               <div className="min-w-0">
                 <p className="text-[10px] font-medium-body uppercase tracking-widest text-white/36">Version</p>
                 <p className="text-xs font-medium-body text-white/78">Pro Operativa</p>
+              </div>
               </div>
             </div>
           )}

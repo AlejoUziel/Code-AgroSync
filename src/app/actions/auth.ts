@@ -10,10 +10,13 @@ import { departamentoHome, normalizeDepartamento } from "@/lib/departments";
 import { publicRegistrationIdentity } from "@/lib/auth-policy";
 import { privacyHash, recordSecurityEvent } from "@/lib/security-events";
 import { isSmtpConfigured, sendEmail } from "@/lib/email";
+import { consumeRecoveryCode, decryptMfaSecret, validateTotp } from "@/lib/mfa";
 
 export type LoginState = {
   errors?: Partial<Record<"email" | "password", string>>;
   message?: string;
+  mfaRequired?: boolean;
+  mfaChallenge?: string;
 };
 
 export type RegisterState = {
@@ -51,6 +54,10 @@ interface AuthUserRow extends RowDataPacket {
   session_version: number;
   platform_role: "none" | "platform_support" | "platform_admin";
   email_verificado_en: Date | string | null;
+  mfa_habilitado: boolean;
+  mfa_secret_encrypted: string | null;
+  mfa_recovery_codes_hashes: string[];
+  mfa_last_used_step: number | null;
 }
 
 type LocalUser = {
@@ -191,7 +198,9 @@ async function findUser(email: string) {
   if (!isDatabaseConfigured) return null;
 
   const rows = await query<AuthUserRow[]>(
-    `SELECT id, nombre, apellido, email, rol, departamento, empresa_id, estado, password_hash, intentos_fallidos, session_version, platform_role, email_verificado_en
+    `SELECT id, nombre, apellido, email, rol, departamento, empresa_id, estado, password_hash,
+            intentos_fallidos, session_version, platform_role, email_verificado_en,
+            mfa_habilitado, mfa_secret_encrypted, mfa_recovery_codes_hashes, mfa_last_used_step
      FROM usuarios
      WHERE email = :email
      LIMIT 1`,
@@ -328,6 +337,7 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
       departamento: normalizeDepartamento(localUser.departamento),
       empresaId: localUser.empresaId,
       sessionVersion: Number(localUser.sessionVersion ?? 1),
+      mfaVerified: true,
     });
     redirect(departamentoHome(localUser.departamento));
   }
@@ -385,6 +395,42 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
       return { message: await registerDatabaseFailedAttempt(user) };
     }
 
+    await resetDatabaseFailedAttempts(user.id);
+    await clearRateLimit(rateKey);
+
+    if (user.mfa_habilitado) {
+      if (!user.mfa_secret_encrypted) {
+        await recordSecurityEvent({
+          empresaId: user.empresa_id,
+          actorUserId: user.id,
+          action: "auth.login",
+          targetType: "usuario",
+          targetId: user.id,
+          result: "error",
+          metadata: { reason: "mfa_secret_missing" },
+        });
+        return { message: "La configuracion MFA esta incompleta. Comunicate con soporte." };
+      }
+      const challenge = randomBytes(32).toString("base64url");
+      await withTransaction(async (execute) => {
+        await execute<ResultSetHeader>(
+          "UPDATE auth_mfa_challenges SET usado_en = CURRENT_TIMESTAMP WHERE usuario_id = :userId AND usado_en IS NULL",
+          { userId: user.id },
+        );
+        await execute<ResultSetHeader>(
+          `INSERT INTO auth_mfa_challenges (id_hash, usuario_id, expira_en)
+           VALUES (:idHash, :userId, CURRENT_TIMESTAMP + INTERVAL '5 minutes')`,
+          { idHash: tokenHash(challenge), userId: user.id },
+        );
+      });
+      return {
+        mfaRequired: true,
+        mfaChallenge: challenge,
+        message: "Ingresa el codigo de tu aplicacion autenticadora o un codigo de recuperacion.",
+      };
+    }
+
+    const enrollmentRequired = user.platform_role === "platform_admin";
     await createSession({
       userId: user.id,
       email: user.email,
@@ -394,11 +440,10 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
       empresaId: user.empresa_id,
       sessionVersion: Number(user.session_version),
       platformRole: user.platform_role,
+      mfaVerified: !enrollmentRequired,
+      mfaEnrollmentRequired: enrollmentRequired,
     });
-    redirectTo = departamentoHome(user.departamento);
-
-    await resetDatabaseFailedAttempts(user.id);
-    await clearRateLimit(rateKey);
+    redirectTo = enrollmentRequired ? "/configuracion/seguridad" : departamentoHome(user.departamento);
     await recordSecurityEvent({
       empresaId: user.empresa_id,
       actorUserId: user.id,
@@ -411,6 +456,100 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
   }
 
   redirect(redirectTo);
+}
+
+export async function completeMfaLogin(_state: LoginState, formData: FormData): Promise<LoginState> {
+  const challenge = String(formData.get("challenge") ?? "");
+  const code = String(formData.get("code") ?? "").trim();
+  if (!challenge || !code) return { message: "Ingresa el codigo de autenticacion." };
+  if (!isDatabaseConfigured) return { message: "PostgreSQL es requerido para validar MFA." };
+
+  type ChallengeRow = AuthUserRow & { challenge_hash: string; challenge_attempts: number };
+  const result = await withTransaction(async (execute) => {
+    const rows = await execute<ChallengeRow[]>(
+      `SELECT c.id_hash AS challenge_hash, c.intentos AS challenge_attempts,
+              u.id, u.nombre, u.apellido, u.email, u.rol, u.departamento, u.empresa_id,
+              u.estado, u.password_hash, u.intentos_fallidos, u.session_version, u.platform_role,
+              u.email_verificado_en, u.mfa_habilitado, u.mfa_secret_encrypted,
+              u.mfa_recovery_codes_hashes, u.mfa_last_used_step
+       FROM auth_mfa_challenges c
+       JOIN usuarios u ON u.id = c.usuario_id
+       WHERE c.id_hash = :challengeHash AND c.usado_en IS NULL
+         AND c.expira_en > CURRENT_TIMESTAMP AND c.intentos < 5 AND u.estado = 'Activo'
+       FOR UPDATE`,
+      { challengeHash: tokenHash(challenge) },
+    );
+    const user = rows[0];
+    if (!user?.mfa_secret_encrypted || !user.mfa_habilitado) return null;
+
+    const secret = decryptMfaSecret(user.mfa_secret_encrypted);
+    const step = validateTotp(secret, code);
+    let recoveryHashes = Array.isArray(user.mfa_recovery_codes_hashes) ? user.mfa_recovery_codes_hashes : [];
+    let usedRecovery = false;
+    if (step === null) {
+      const remaining = consumeRecoveryCode(user.id, code, recoveryHashes);
+      if (remaining) {
+        recoveryHashes = remaining;
+        usedRecovery = true;
+      }
+    }
+
+    if (step === null && !usedRecovery) {
+      await execute<ResultSetHeader>(
+        "UPDATE auth_mfa_challenges SET intentos = intentos + 1 WHERE id_hash = :challengeHash",
+        { challengeHash: user.challenge_hash },
+      );
+      return null;
+    }
+
+    if (step !== null) {
+      const updated = await execute<(RowDataPacket & { id: string })[]>(
+        `UPDATE usuarios SET mfa_last_used_step = :step
+         WHERE id = :userId AND (mfa_last_used_step IS NULL OR mfa_last_used_step < :step)
+         RETURNING id`,
+        { userId: user.id, step },
+      );
+      if (!updated[0]) return null;
+    } else {
+      await execute<ResultSetHeader>(
+        "UPDATE usuarios SET mfa_recovery_codes_hashes = CAST(:hashes AS jsonb) WHERE id = :userId",
+        { userId: user.id, hashes: JSON.stringify(recoveryHashes) },
+      );
+    }
+    await execute<ResultSetHeader>(
+      "UPDATE auth_mfa_challenges SET usado_en = CURRENT_TIMESTAMP WHERE id_hash = :challengeHash",
+      { challengeHash: user.challenge_hash },
+    );
+    return { user, usedRecovery };
+  });
+
+  if (!result) {
+    await recordSecurityEvent({ action: "auth.mfa.challenge", result: "rechazado" });
+    return { mfaRequired: true, mfaChallenge: challenge, message: "Codigo invalido, usado o vencido." };
+  }
+
+  const user = result.user;
+  await createSession({
+    userId: user.id,
+    email: user.email,
+    nombre: `${user.nombre} ${user.apellido}`,
+    rol: user.rol,
+    departamento: normalizeDepartamento(user.departamento),
+    empresaId: user.empresa_id,
+    sessionVersion: Number(user.session_version),
+    platformRole: user.platform_role,
+    mfaVerified: true,
+    mfaEnrollmentRequired: false,
+  });
+  await recordSecurityEvent({
+    empresaId: user.empresa_id,
+    actorUserId: user.id,
+    action: "auth.mfa.challenge",
+    targetType: "sesion",
+    result: "exito",
+    metadata: { recoveryCode: result.usedRecovery },
+  });
+  redirect(departamentoHome(user.departamento));
 }
 
 export async function register(_state: RegisterState, formData: FormData): Promise<RegisterState> {

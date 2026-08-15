@@ -15,6 +15,8 @@ export interface SessionPayload {
   sessionVersion: number;
   sessionId?: string;
   platformRole?: "none" | "platform_support" | "platform_admin";
+  mfaVerified?: boolean;
+  mfaEnrollmentRequired?: boolean;
 }
 
 interface CurrentSessionUser extends RowDataPacket {
@@ -28,6 +30,7 @@ interface CurrentSessionUser extends RowDataPacket {
   estado: string;
   session_version: number;
   platform_role: "none" | "platform_support" | "platform_admin";
+  mfa_habilitado: boolean;
 }
 
 const cookieName = "agrosync_session";
@@ -93,14 +96,18 @@ export async function readSession() {
     if (!isDatabaseConfigured) return session;
 
     const rows = await query<CurrentSessionUser[]>(
-      `SELECT u.id, u.email, u.nombre, u.apellido, u.rol, u.departamento, u.empresa_id, u.estado, u.session_version, u.platform_role
+      `SELECT u.id, u.email, u.nombre, u.apellido,
+              CASE WHEN m.rol IN ('owner','admin') THEN 'Administrador' ELSE u.rol END AS rol,
+              u.departamento, m.empresa_id, u.estado, u.session_version, u.platform_role, u.mfa_habilitado
        FROM usuarios u
+       JOIN membresias m ON m.usuario_id = u.id AND m.empresa_id = :empresaId AND m.estado = 'Activa'
        LEFT JOIN sesiones s ON s.usuario_id = u.id AND s.id_hash = :sessionHash
        WHERE u.id = :id
          AND (:legacySession = TRUE OR (s.revocada_en IS NULL AND s.expira_en > CURRENT_TIMESTAMP))
        LIMIT 1`,
       {
         id: session.userId,
+        empresaId: session.empresaId,
         sessionHash: session.sessionId ? createHash("sha256").update(session.sessionId).digest("hex") : "legacy",
         legacySession: !session.sessionId,
       }
@@ -109,6 +116,9 @@ export async function readSession() {
     if (!user || user.estado !== "Activo" || Number(user.session_version) !== Number(session.sessionVersion)) {
       return null;
     }
+
+    const enrollmentRequired = user.platform_role === "platform_admin" && !user.mfa_habilitado;
+    if (user.mfa_habilitado && !session.mfaVerified) return null;
 
     return {
       userId: user.id,
@@ -120,6 +130,8 @@ export async function readSession() {
       sessionVersion: Number(user.session_version),
       sessionId: session.sessionId,
       platformRole: user.platform_role,
+      mfaVerified: Boolean(session.mfaVerified),
+      mfaEnrollmentRequired: enrollmentRequired,
     } satisfies SessionPayload;
   } catch {
     return null;

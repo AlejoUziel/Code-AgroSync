@@ -1,6 +1,6 @@
 import { readSession, type SessionPayload } from "@/lib/session";
 import type { ResourceKey } from "@/lib/resource-definitions";
-import { randomUUID } from "crypto";
+import { captureOperationalError } from "@/lib/observability";
 
 export class AccessError extends Error {
   constructor(message: string, public readonly status = 403) {
@@ -53,6 +53,14 @@ export async function requireAdministratorIT() {
   return session;
 }
 
+export async function requireOrganizationAdmin() {
+  const session = await requireSession();
+  if (session.platformRole !== "platform_admin" && session.rol !== "Administrador") {
+    throw new AccessError("Se requiere acceso de administrador de la organizacion.");
+  }
+  return session;
+}
+
 export function assertSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) return;
@@ -64,7 +72,6 @@ export function accessErrorResponse(error: unknown, fallback: string, fallbackSt
   if (error instanceof AccessError || error instanceof ValidationError) {
     return Response.json({ message: error.message }, { status: error.status });
   }
-  const traceId = randomUUID();
-  console.error(`[AgroSync:${traceId}]`, error);
+  const traceId = captureOperationalError(error, "api.request.failed", { fallback, fallbackStatus });
   return Response.json({ message: fallback, traceId }, { status: fallbackStatus });
 }

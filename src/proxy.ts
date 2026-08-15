@@ -13,13 +13,16 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(cookieName)?.value;
 
-  const publicAuthPage = pathname === "/login" || pathname === "/recuperar-contrasena" || pathname === "/restablecer-contrasena";
+  const publicAuthPage = pathname === "/login" || pathname === "/recuperar-contrasena" || pathname === "/restablecer-contrasena" || pathname === "/aceptar-invitacion";
 
   if (pathname === "/login" && token) {
     try {
       const { payload } = await jwtVerify(token, getSessionSecret());
       if (!Number.isInteger(Number(payload.sessionVersion))) {
         return clearInvalidSession(NextResponse.next());
+      }
+      if (payload.mfaEnrollmentRequired) {
+        return NextResponse.redirect(new URL("/configuracion/seguridad", request.url));
       }
       return NextResponse.redirect(new URL(departamentoHome(String(payload.departamento ?? "")), request.url));
     } catch {
@@ -41,6 +44,9 @@ export async function proxy(request: NextRequest) {
     const { payload } = await jwtVerify(token, getSessionSecret());
     if (!Number.isInteger(Number(payload.sessionVersion))) {
       return clearInvalidSession(NextResponse.redirect(new URL("/login", request.url)));
+    }
+    if (payload.mfaEnrollmentRequired && pathname !== "/configuracion/seguridad") {
+      return NextResponse.redirect(new URL("/configuracion/seguridad", request.url));
     }
     if (pathname === "/" || ["/admin", "/ops", "/tech"].some((prefix) => pathname.startsWith(prefix))) {
       const isPlatformAdmin = payload.platformRole === "platform_admin";

@@ -35,6 +35,7 @@ const migrationFiles = [
   "db/postgres-realtime.sql",
   "db/05-public-business-codes.sql",
   "db/07-saas-foundation.sql",
+  "db/08-enterprise-readiness.sql",
 ];
 const client = new pg.Client({ connectionString: hardenedPostgresUrl(connectionString) });
 

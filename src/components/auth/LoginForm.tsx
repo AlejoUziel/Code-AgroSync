@@ -2,8 +2,8 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { Building2, Eye, EyeOff, Lock, LogIn, Mail, Phone, User, UserPlus, Loader2 } from "lucide-react";
-import { login, register, type LoginState, type RegisterState } from "@/app/actions/auth";
+import { Building2, Eye, EyeOff, KeyRound, Lock, LogIn, Mail, Phone, User, UserPlus, Loader2 } from "lucide-react";
+import { completeMfaLogin, login, register, type LoginState, type RegisterState } from "@/app/actions/auth";
 
 const initialState: LoginState = {};
 const initialRegisterState: RegisterState = {};
@@ -13,8 +13,9 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loginState, loginAction, loginPending] = useActionState(login, initialState);
+  const [mfaState, mfaAction, mfaPending] = useActionState(completeMfaLogin, initialState);
   const [registerState, registerAction, registerPending] = useActionState(register, initialRegisterState);
-  const pending = loginPending || registerPending;
+  const pending = loginPending || mfaPending || registerPending;
 
   const fieldClass =
     "mt-1 flex items-center gap-2 rounded-lg border border-[var(--border)] bg-card px-3 py-2 text-foreground focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary)]/10";
@@ -55,7 +56,46 @@ export default function LoginForm() {
       </div>
 
       <div key={mode} className="animate-fade-up duration-300">
-        {mode === "login" ? (
+        {mode === "login" ? loginState.mfaRequired ? (
+          <form action={mfaAction} className="space-y-4" noValidate>
+            <input type="hidden" name="challenge" value={loginState.mfaChallenge ?? ""} />
+            <div className="rounded-lg border border-[var(--primary)]/30 bg-[var(--primary)]/5 px-3 py-3 text-xs text-muted-foreground">
+              La contraseña fue validada. Completa el segundo factor para crear la sesión.
+            </div>
+            <div>
+              <label htmlFor="mfa-code" className="font-medium-body text-xs text-foreground">
+                Código de autenticación
+              </label>
+              <div className={fieldClass}>
+                <KeyRound size={15} className={iconClass} />
+                <input
+                  id="mfa-code"
+                  name="code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  required
+                  autoFocus
+                  placeholder="000000 o código de recuperación"
+                  className={inputClass}
+                  disabled={pending}
+                />
+              </div>
+            </div>
+            {(mfaState.message || loginState.message) && (
+              <div className={`rounded-lg border px-3 py-2 text-xs ${mfaState.message ? "border-red-200 bg-red-50 text-red-600" : "border-blue-200 bg-blue-50 text-blue-700"}`}>
+                {mfaState.message ?? loginState.message}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={pending}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[var(--primary)] text-sm font-medium-body text-white transition-all hover:bg-[var(--primary-dark)] disabled:opacity-60"
+            >
+              {mfaPending ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
+              Verificar y entrar
+            </button>
+          </form>
+        ) : (
           <form action={loginAction} className="space-y-4" noValidate>
             <div>
               <label htmlFor="email" className="font-medium-body text-xs text-foreground">
