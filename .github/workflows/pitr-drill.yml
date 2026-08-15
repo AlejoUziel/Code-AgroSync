@@ -1,0 +1,24 @@
+name: PITR drill
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 8 1 * *"
+
+jobs:
+  verify-restored-branch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+      - run: npm ci
+      - run: npm run db:drill:pitr
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          PITR_RESTORED_DATABASE_URL: ${{ secrets.PITR_RESTORED_DATABASE_URL }}
+          PITR_TARGET_TIMESTAMP: ${{ vars.PITR_TARGET_TIMESTAMP }}
+

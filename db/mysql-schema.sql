@@ -3,6 +3,7 @@ USE agrosync;
 
 CREATE TABLE empresas (
   id VARCHAR(36) PRIMARY KEY,
+  codigo VARCHAR(20) NOT NULL UNIQUE,
   nombre VARCHAR(255) NOT NULL,
   nit VARCHAR(64) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL,
@@ -18,6 +19,7 @@ CREATE TABLE empresas (
 
 CREATE TABLE usuarios (
   id VARCHAR(36) PRIMARY KEY,
+  codigo VARCHAR(20) NOT NULL UNIQUE,
   empresa_id VARCHAR(36) NOT NULL,
   nombre VARCHAR(120) NOT NULL,
   apellido VARCHAR(120) NOT NULL,
@@ -162,4 +164,3 @@ CREATE TABLE comunicacion_envios (
   CONSTRAINT fk_comunicacion_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
-

@@ -4,8 +4,8 @@
 USE agrosync;
 
 -- Asegurarse de que la empresa por defecto exista
-INSERT IGNORE INTO empresas (id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, notas)
-VALUES ('EMP-001', 'AgroSur', 'RTN-AGROSUR-2026', 'contacto@agrosur.com', '+504 2222-1111', 'Colonia Florencia', 'Tegucigalpa', 'Honduras', 'Starter', 'Activa', 'Empresa de prueba');
+INSERT IGNORE INTO empresas (id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, notas)
+VALUES ('EMP-001', 'EMP-001', 'AgroSur', 'RTN-AGROSUR-2026', 'contacto@agrosur.com', '+504 2222-1111', 'Colonia Florencia', 'Tegucigalpa', 'Honduras', 'Starter', 'Activa', 'Empresa de prueba');
 
 -- Insertar Parcelas de Roatán (con sus respectivos POINT y POLYGON espaciales SRID 4326)
 INSERT IGNORE INTO parcelas (id, empresa_id, nombre, zona, hectareas, estado, centro, poligono)

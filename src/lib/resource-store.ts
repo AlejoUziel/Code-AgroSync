@@ -1,4 +1,4 @@
-import { isDatabaseConfigured, query, withTransaction, type QueryExecutor, type ResultSetHeader, type RowDataPacket } from "@/lib/db";
+import { isDatabaseConfigured, withTenantTransaction, type QueryExecutor, type ResultSetHeader, type RowDataPacket } from "@/lib/db";
 import { requireResourceAccess, ValidationError } from "@/lib/authorization";
 import { HONDURAS_CENTER, calculateInventoryStatus, isInsideHonduras, polygonAround, type ResourceKey, type ResourceRecord } from "@/lib/resource-definitions";
 
@@ -372,7 +372,7 @@ export async function listResource(resource: ResourceKey, authorizeAs: ResourceK
   const session = await requireResourceAccess(authorizeAs);
   const config = stores[resource];
   const { sql, values } = buildScopedSelectQuery(config.select, session.empresaId);
-  const rows = await query<DbRow[]>(sql, values);
+  const rows = await withTenantTransaction(session.empresaId, (execute) => execute<DbRow[]>(sql, values));
   return { items: rows.map(config.mapRow), dbConfigured: true };
 }
 
@@ -410,7 +410,7 @@ export async function createResource(resource: ResourceKey, item: ResourceRecord
   if (!isDatabaseConfigured) throw new Error("DATABASE_URL no esta configurada.");
   const session = await requireResourceAccess(resource);
   const config = stores[resource];
-  return withTransaction(async (execute) => {
+  return withTenantTransaction(session.empresaId, async (execute) => {
     const id = item.id || await nextResourceId(execute, resource, item);
     let saved: ResourceRecord = { ...item, id: String(id) };
     let responseItem: ResourceRecord = saved;
@@ -431,7 +431,7 @@ export async function updateResource(resource: ResourceKey, id: string, item: Re
   if (!isDatabaseConfigured) throw new Error("DATABASE_URL no esta configurada.");
   const session = await requireResourceAccess(resource);
   const config = stores[resource];
-  return withTransaction(async (execute) => {
+  return withTenantTransaction(session.empresaId, async (execute) => {
     const before = await currentRecord(execute, config.table, id, session.empresaId);
     if (!before) throw new Error("Registro no encontrado o fuera de tu alcance.");
     const tenant = tenantCondition(session.empresaId);
@@ -458,7 +458,7 @@ export async function deleteResource(resource: ResourceKey, id: string) {
   if (!isDatabaseConfigured) throw new Error("DATABASE_URL no esta configurada.");
   const session = await requireResourceAccess(resource);
   const config = stores[resource];
-  await withTransaction(async (execute) => {
+  await withTenantTransaction(session.empresaId, async (execute) => {
     const before = await currentRecord(execute, config.table, id, session.empresaId);
     if (!before) throw new Error("Registro no encontrado o fuera de tu alcance.");
     const tenant = tenantCondition(session.empresaId);

@@ -24,6 +24,7 @@ export type EstadoUsuario = "Activo" | "Inactivo" | "Suspendido";
 // PostgreSQL: CREATE TABLE empresas (id VARCHAR(36) PRIMARY KEY, nombre VARCHAR(255), ...)
 export interface Empresa {
   id: string;
+  codigo?: string;
   nombre: string;
   nit: string;          // NIT / RUC / RFC
   email: string;
@@ -43,6 +44,7 @@ export interface Empresa {
 // PostgreSQL: CREATE TABLE usuarios (id VARCHAR(36) PRIMARY KEY, empresa_id VARCHAR(36) REFERENCES empresas(id), ...)
 export interface Usuario {
   id: string;
+  codigo?: string;
   nombre: string;
   apellido: string;
   email: string;

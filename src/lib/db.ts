@@ -63,3 +63,10 @@ export async function withTransaction<T>(work: (execute: QueryExecutor) => Promi
     client.release();
   }
 }
+
+export async function withTenantTransaction<T>(empresaId: string, work: (execute: QueryExecutor) => Promise<T>) {
+  return withTransaction(async (execute) => {
+    await execute("SELECT set_config('app.current_empresa_id', :empresaId, true)", { empresaId });
+    return work(execute);
+  });
+}

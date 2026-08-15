@@ -1,6 +1,6 @@
 import { readSession, type SessionPayload } from "@/lib/session";
 import type { ResourceKey } from "@/lib/resource-definitions";
-import { randomUUID } from "crypto";
+import { captureOperationalError } from "@/lib/observability";
 
 export class AccessError extends Error {
   constructor(message: string, public readonly status = 403) {
@@ -28,7 +28,7 @@ const resourceDepartments: Record<ResourceKey, string[]> = {
 };
 
 export function canAccessResource(session: SessionPayload, resource: ResourceKey) {
-  return session.departamento === "AdministradorIT" || resourceDepartments[resource].includes(session.departamento);
+  return session.platformRole === "platform_admin" || session.rol === "Administrador" || resourceDepartments[resource].includes(session.departamento);
 }
 
 export async function requireSession() {
@@ -47,8 +47,16 @@ export async function requireResourceAccess(resource: ResourceKey) {
 
 export async function requireAdministratorIT() {
   const session = await requireSession();
-  if (session.departamento !== "AdministradorIT") {
-    throw new AccessError("Se requiere acceso de Administrador IT.");
+  if (session.platformRole !== "platform_admin") {
+    throw new AccessError("Se requiere acceso de administrador de plataforma.");
+  }
+  return session;
+}
+
+export async function requireOrganizationAdmin() {
+  const session = await requireSession();
+  if (session.platformRole !== "platform_admin" && session.rol !== "Administrador") {
+    throw new AccessError("Se requiere acceso de administrador de la organizacion.");
   }
   return session;
 }
@@ -64,7 +72,6 @@ export function accessErrorResponse(error: unknown, fallback: string, fallbackSt
   if (error instanceof AccessError || error instanceof ValidationError) {
     return Response.json({ message: error.message }, { status: error.status });
   }
-  const traceId = randomUUID();
-  console.error(`[AgroSync:${traceId}]`, error);
+  const traceId = captureOperationalError(error, "api.request.failed", { fallback, fallbackStatus });
   return Response.json({ message: fallback, traceId }, { status: fallbackStatus });
 }

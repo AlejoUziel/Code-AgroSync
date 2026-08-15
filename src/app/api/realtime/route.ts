@@ -1,9 +1,18 @@
 import { readSession } from "@/lib/session";
 import { subscribeToDatabaseChanges } from "@/lib/realtime-hub";
+import { query, type RowDataPacket } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
+
+type OutboxRow = RowDataPacket & { id: string; payload: Record<string, unknown> };
+
+function sseChange(payload: string) {
+  const parsed = JSON.parse(payload) as { eventId?: string };
+  const eventId = parsed.eventId ? `id: ${parsed.eventId}\n` : "";
+  return `${eventId}event: change\ndata: ${payload}\n\n`;
+}
 
 export async function GET(request: Request) {
   const session = await readSession();
@@ -14,6 +23,8 @@ export async function GET(request: Request) {
   }
 
   const encoder = new TextEncoder();
+  const requestedLastEventId = request.headers.get("last-event-id")?.trim();
+  const lastEventId = requestedLastEventId && /^[0-9a-f-]{36}$/i.test(requestedLastEventId) ? requestedLastEventId : null;
   let unsubscribe: (() => void) | null = null;
   let heartbeat: ReturnType<typeof setInterval> | null = null;
   let closed = false;
@@ -29,15 +40,30 @@ export async function GET(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        if (lastEventId) {
+          const missed = await query<OutboxRow[]>(
+            `SELECT id, payload
+             FROM outbox_eventos
+             WHERE empresa_id = :empresaId
+               AND creado_en > COALESCE(
+                 (SELECT creado_en FROM outbox_eventos WHERE id = CAST(:lastEventId AS uuid) AND empresa_id = :empresaId),
+                 CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+               )
+             ORDER BY creado_en
+             LIMIT 100`,
+            { empresaId: session.empresaId, lastEventId },
+          );
+          for (const event of missed) {
+            controller.enqueue(encoder.encode(sseChange(JSON.stringify({ ...event.payload, eventId: event.id }))));
+          }
+        }
         unsubscribe = await subscribeToDatabaseChanges((payload) => {
           if (closed) return;
           try {
             const change = JSON.parse(payload) as { companyId?: string };
             if (change.companyId !== session.empresaId) return;
-            controller.enqueue(encoder.encode(`event: change\ndata: ${payload}\n\n`));
-          } catch {
-            // Los eventos inválidos no deben cerrar el stream del usuario.
-          }
+            controller.enqueue(encoder.encode(sseChange(payload)));
+          } catch {}
         });
         controller.enqueue(encoder.encode("event: connected\ndata: {}\n\n"));
         heartbeat = setInterval(() => {

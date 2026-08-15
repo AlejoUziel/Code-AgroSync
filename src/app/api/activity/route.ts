@@ -1,5 +1,5 @@
 import { accessErrorResponse, canAccessResource, requireSession } from "@/lib/authorization";
-import { query, type RowDataPacket } from "@/lib/db";
+import { withTenantTransaction, type RowDataPacket } from "@/lib/db";
 import type { ResourceKey } from "@/lib/resource-definitions";
 
 interface ActivityRow extends RowDataPacket {
@@ -23,7 +23,7 @@ const actionLabel = {
 export async function GET() {
   try {
     const session = await requireSession();
-    const rows = await query<ActivityRow[]>(
+    const rows = await withTenantTransaction(session.empresaId, (execute) => execute<ActivityRow[]>(
       `SELECT a.id, a.empresa_id, a.recurso, a.registro_id, a.accion,
               a.datos_anteriores, a.datos_nuevos, a.creado_en,
               NULLIF(TRIM(CONCAT(u.nombre, ' ', u.apellido)), '') AS usuario_nombre
@@ -33,7 +33,7 @@ export async function GET() {
        ORDER BY a.creado_en DESC
        LIMIT 40`,
       { empresaId: session.empresaId }
-    );
+    ));
 
     const items = rows
       .filter((row) => canAccessResource(session, row.recurso))

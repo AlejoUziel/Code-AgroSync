@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   ChevronDown,
@@ -24,11 +24,13 @@ import {
   Menu,
   X,
   ShieldCheck,
+  CreditCard,
+  UserPlus,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { logout, updateSessionProfile, type SettingsState } from "@/app/actions/auth";
-import { departamentoHome, departamentos } from "@/lib/departments";
+import { departamentoHome } from "@/lib/departments";
 import { useSessionUser } from "@/hooks/useSessionUser";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -63,6 +65,16 @@ const navGroups: NavGroup[] = [
         label: "Finanzas",
         href: "/admin/finanzas",
         icon: <Wallet size={15} />,
+      },
+      {
+        label: "Invitaciones",
+        href: "/admin/equipo",
+        icon: <UserPlus size={15} />,
+      },
+      {
+        label: "Facturación SaaS",
+        href: "/admin/facturacion",
+        icon: <CreditCard size={15} />,
       },
     ],
   },
@@ -133,8 +145,10 @@ function SidebarTooltip({ children, label, enabled }: { children: React.ReactEle
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const user = useSessionUser();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [organizations, setOrganizations] = useState<{ id: string; nombre: string }[]>([]);
   const [settingsState, settingsAction, settingsPending] = useActionState<SettingsState, FormData>(
     updateSessionProfile,
     {}
@@ -156,12 +170,41 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     }
   }, [settingsState.ok]);
 
-  const visibleGroups = navGroups.filter((group) => {
-    if (!user) return false;
-    if (user.departamento === "AdministradorIT") return true;
-    if (user.departamento === "Tecnologico") return group.category === "Tecnológico";
-    return group.category === user.departamento;
-  });
+  useEffect(() => {
+    fetch("/api/organizations", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => setOrganizations(data?.items ?? []))
+      .catch(() => setOrganizations([]));
+  }, []);
+
+  const switchOrganization = async (empresaId: string) => {
+    if (!empresaId || empresaId === user?.empresaId) return;
+    const response = await fetch("/api/organizations", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ empresaId }),
+    });
+    if (response.ok) router.push("/");
+  };
+
+  const visibleGroups = navGroups
+    .filter((group) => {
+      if (!user) return false;
+      if (user.platformRole === "platform_admin" || user.rol === "Administrador") return true;
+      if (user.departamento === "Tecnologico") return group.category === "Tecnológico";
+      return group.category === user.departamento;
+    })
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (item.href === "/admin/usuarios") return user?.platformRole === "platform_admin";
+        if (["/admin/equipo", "/admin/facturacion"].includes(item.href)) {
+          return user?.platformRole === "platform_admin" || user?.rol === "Administrador";
+        }
+        return true;
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
   const homeHref = departamentoHome(user?.departamento);
   const handleMobileNavigation = () => {
     if (window.innerWidth < 1024 && !collapsed) onToggle();
@@ -209,7 +252,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {!collapsed && (
             <button
               onClick={onToggle}
-              className="ml-auto text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+              className="ml-auto grid h-11 w-11 place-items-center rounded-lg text-white/40 hover:bg-white/5 hover:text-white/80 transition-colors cursor-pointer"
               aria-label="Collapse sidebar"
             >
               <X size={15} />
@@ -218,7 +261,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {collapsed && (
             <button
               onClick={onToggle}
-              className="text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+              className="grid h-11 w-11 place-items-center rounded-lg text-white/40 hover:bg-white/5 hover:text-white/80 transition-colors cursor-pointer"
               aria-label="Expand sidebar"
             >
               <Menu size={15} />
@@ -323,11 +366,26 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* Bottom user area */}
         <div className="shrink-0 border-t border-white/8 p-3">
           {!collapsed && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2">
+            <div className="mb-3 space-y-2">
+              {organizations.length > 1 && (
+                <select
+                  aria-label="Organización activa"
+                  value={user?.empresaId ?? ""}
+                  onChange={(event) => void switchOrganization(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-white/10 bg-[#20251d] px-2 text-xs text-white/80 outline-none"
+                >
+                  {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.nombre}</option>)}
+                </select>
+              )}
+              <Link href="/configuracion/seguridad" className="flex min-h-11 items-center gap-2 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2 text-xs text-white/70 hover:text-white">
+                <ShieldCheck size={14} className="text-accent" /> Seguridad y MFA
+              </Link>
+              <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2">
               <ShieldCheck size={14} className="text-accent" />
               <div className="min-w-0">
                 <p className="text-[10px] font-medium-body uppercase tracking-widest text-white/36">Version</p>
                 <p className="text-xs font-medium-body text-white/78">Pro Operativa</p>
+              </div>
               </div>
             </div>
           )}
@@ -382,7 +440,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <DialogHeader className="px-5 pt-5 pb-4 border-b border-[var(--border)]">
             <DialogTitle>Configuracion de Usuario</DialogTitle>
             <p className="text-xs text-muted-foreground">
-              Editar o cambiar usuario requiere validacion de Administrador General.
+              Actualiza tu nombre visible. Los permisos se administran desde el directorio autorizado.
             </p>
           </DialogHeader>
           <form action={settingsAction} className="space-y-4 px-5 py-4">
@@ -391,30 +449,6 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <input
                 name="nombre"
                 defaultValue={user?.nombre ?? ""}
-                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium-body text-[#1E1E1E]">Departamento o acceso</span>
-              <select
-                name="departamento"
-                defaultValue={user?.departamento ?? "Administrativo"}
-                className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
-              >
-                {departamentos.map((departamento) => (
-                  <option key={departamento.value} value={departamento.value}>
-                    {departamento.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium-body text-[#1E1E1E]">Clave Administrador General</span>
-              <input
-                name="adminPassword"
-                type="password"
-                required
-                placeholder="Clave requerida"
                 className="mt-1 h-9 w-full rounded-lg border border-[var(--border)] bg-card px-3 text-sm outline-none focus:border-[var(--primary)]"
               />
             </label>
@@ -436,7 +470,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 disabled={settingsPending}
                 className="px-5 py-2 rounded-lg bg-[var(--primary)] text-white text-xs font-medium-body hover:bg-[var(--primary-dark)] disabled:opacity-60"
               >
-                {settingsPending ? "Validando..." : "Guardar cambios"}
+                {settingsPending ? "Guardando..." : "Guardar cambios"}
               </button>
             </DialogFooter>
           </form>

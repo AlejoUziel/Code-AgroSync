@@ -1,17 +1,22 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createHash, randomUUID, timingSafeEqual } from "crypto";
+import { createHash, randomBytes, randomUUID } from "crypto";
 import { cookies, headers } from "next/headers";
-import { isDatabaseConfigured, query, withTransaction, type QueryExecutor, type ResultSetHeader, type RowDataPacket } from "@/lib/db";
+import { isDatabaseConfigured, query, withTenantTransaction, withTransaction, type QueryExecutor, type ResultSetHeader, type RowDataPacket } from "@/lib/db";
 import { createSession, deleteSession, readSession } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { departamentoHome, normalizeDepartamento } from "@/lib/departments";
-import { publicRegistrationIdentity, roleForDepartment } from "@/lib/auth-policy";
+import { publicRegistrationIdentity } from "@/lib/auth-policy";
+import { privacyHash, recordSecurityEvent } from "@/lib/security-events";
+import { isSmtpConfigured, sendEmail } from "@/lib/email";
+import { consumeRecoveryCode, decryptMfaSecret, validateTotp } from "@/lib/mfa";
 
 export type LoginState = {
   errors?: Partial<Record<"email" | "password", string>>;
   message?: string;
+  mfaRequired?: boolean;
+  mfaChallenge?: string;
 };
 
 export type RegisterState = {
@@ -22,6 +27,12 @@ export type RegisterState = {
     >
   >;
   message?: string;
+  ok?: boolean;
+};
+
+export type PasswordRecoveryState = {
+  message?: string;
+  ok?: boolean;
 };
 
 export type SettingsState = {
@@ -41,6 +52,12 @@ interface AuthUserRow extends RowDataPacket {
   password_hash: string;
   intentos_fallidos: number;
   session_version: number;
+  platform_role: "none" | "platform_support" | "platform_admin";
+  email_verificado_en: Date | string | null;
+  mfa_habilitado: boolean;
+  mfa_secret_encrypted: string | null;
+  mfa_recovery_codes_hashes: string[];
+  mfa_last_used_step: number | null;
 }
 
 type LocalUser = {
@@ -63,6 +80,18 @@ type LocalUser = {
 const localUsersCookie = "agrosync_local_users";
 const maxLoginAttempts = 5;
 const allowLocalAuth = process.env.NODE_ENV !== "production";
+const requireEmailVerification = process.env.NODE_ENV === "production" || process.env.REQUIRE_EMAIL_VERIFICATION === "true";
+
+function publicAppUrl() {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
+function tokenHash(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 async function getLocalUsers() {
   const cookieStore = await cookies();
@@ -84,14 +113,6 @@ async function saveLocalUsers(users: LocalUser[]) {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
-}
-
-function adminPasswordIsValid(value: string) {
-  const expected = process.env.ADMIN_GENERAL_PASSWORD;
-  if (!expected || expected.length < 12 || !value) return false;
-  const actualBuffer = Buffer.from(value);
-  const expectedBuffer = Buffer.from(expected);
-  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
 async function loginRateKey(email: string) {
@@ -177,7 +198,9 @@ async function findUser(email: string) {
   if (!isDatabaseConfigured) return null;
 
   const rows = await query<AuthUserRow[]>(
-    `SELECT id, nombre, apellido, email, rol, departamento, empresa_id, estado, password_hash, intentos_fallidos, session_version
+    `SELECT id, nombre, apellido, email, rol, departamento, empresa_id, estado, password_hash,
+            intentos_fallidos, session_version, platform_role, email_verificado_en,
+            mfa_habilitado, mfa_secret_encrypted, mfa_recovery_codes_hashes, mfa_last_used_step
      FROM usuarios
      WHERE email = :email
      LIMIT 1`,
@@ -189,7 +212,7 @@ async function findUser(email: string) {
 
 async function createSupportAlertForBlockedUser(user: AuthUserRow, attempts: number) {
   try {
-    await query<ResultSetHeader>(
+    await withTenantTransaction(user.empresa_id, (execute) => execute<ResultSetHeader>(
       `INSERT INTO alertas (
          id, empresa_id, tipo, severidad, mensaje, resuelta
        ) VALUES (
@@ -198,9 +221,9 @@ async function createSupportAlertForBlockedUser(user: AuthUserRow, attempts: num
       {
         id: randomUUID(),
         empresaId: user.empresa_id,
-        mensaje: `Soporte tecnico: usuario ${user.nombre} ${user.apellido} (${user.email}) bloqueado por superar ${attempts} intentos fallidos de inicio de sesion.`,
+        mensaje: `Soporte tecnico: una cuenta de usuario fue bloqueada por superar ${attempts} intentos fallidos de inicio de sesion.`,
       }
-    );
+    ));
   } catch {
     // El bloqueo del usuario no debe depender de que la alerta interna se guarde.
   }
@@ -314,6 +337,7 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
       departamento: normalizeDepartamento(localUser.departamento),
       empresaId: localUser.empresaId,
       sessionVersion: Number(localUser.sessionVersion ?? 1),
+      mfaVerified: true,
     });
     redirect(departamentoHome(localUser.departamento));
   }
@@ -323,18 +347,90 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
     const user = await findUser(email);
     if (!user) {
       await recordRateLimitFailure(rateKey);
+      await recordSecurityEvent({
+        action: "auth.login",
+        result: "rechazado",
+        metadata: { reason: "invalid_credentials", emailHash: privacyHash(email) },
+      });
       return { message: "Credenciales invalidas o usuario inactivo." };
     }
 
     if (user.estado !== "Activo") {
+      await recordSecurityEvent({
+        empresaId: user.empresa_id,
+        actorUserId: user.id,
+        action: "auth.login",
+        targetType: "usuario",
+        targetId: user.id,
+        result: "rechazado",
+        metadata: { reason: "inactive_or_blocked" },
+      });
       return { message: "Usuario bloqueado o inactivo. Comunicate con soporte tecnico." };
+    }
+
+    if (requireEmailVerification && !user.email_verificado_en) {
+      await recordSecurityEvent({
+        empresaId: user.empresa_id,
+        actorUserId: user.id,
+        action: "auth.login",
+        targetType: "usuario",
+        targetId: user.id,
+        result: "rechazado",
+        metadata: { reason: "email_not_verified" },
+      });
+      return { message: "Debes verificar tu correo antes de iniciar sesion." };
     }
 
     if (!verifyPassword(password, user.password_hash)) {
       await recordRateLimitFailure(rateKey);
+      await recordSecurityEvent({
+        empresaId: user.empresa_id,
+        actorUserId: user.id,
+        action: "auth.login",
+        targetType: "usuario",
+        targetId: user.id,
+        result: "rechazado",
+        metadata: { reason: "invalid_credentials" },
+      });
       return { message: await registerDatabaseFailedAttempt(user) };
     }
 
+    await resetDatabaseFailedAttempts(user.id);
+    await clearRateLimit(rateKey);
+
+    if (user.mfa_habilitado) {
+      if (!user.mfa_secret_encrypted) {
+        await recordSecurityEvent({
+          empresaId: user.empresa_id,
+          actorUserId: user.id,
+          action: "auth.login",
+          targetType: "usuario",
+          targetId: user.id,
+          result: "error",
+          metadata: { reason: "mfa_secret_missing" },
+        });
+        return { message: "La configuracion MFA esta incompleta. Comunicate con soporte." };
+      }
+      const challenge = randomBytes(32).toString("base64url");
+      await withTransaction(async (execute) => {
+        await execute<ResultSetHeader>(
+          "UPDATE auth_mfa_challenges SET usado_en = CURRENT_TIMESTAMP WHERE usuario_id = :userId AND usado_en IS NULL",
+          { userId: user.id },
+        );
+        await execute<ResultSetHeader>(
+          `INSERT INTO auth_mfa_challenges (id_hash, usuario_id, expira_en)
+           VALUES (:idHash, :userId, CURRENT_TIMESTAMP + INTERVAL '5 minutes')`,
+          { idHash: tokenHash(challenge), userId: user.id },
+        );
+      });
+      return {
+        mfaRequired: true,
+        mfaChallenge: challenge,
+        message: "Ingresa el codigo de tu aplicacion autenticadora o un codigo de recuperacion.",
+      };
+    }
+
+    const enrollmentRequired = user.platform_role === "platform_admin";
     await createSession({
       userId: user.id,
       email: user.email,
@@ -343,16 +439,117 @@ export async function login(_state: LoginState, formData: FormData): Promise<Log
       departamento: normalizeDepartamento(user.departamento),
       empresaId: user.empresa_id,
       sessionVersion: Number(user.session_version),
+      platformRole: user.platform_role,
+      mfaVerified: !enrollmentRequired,
+      mfaEnrollmentRequired: enrollmentRequired,
     });
-    redirectTo = departamentoHome(user.departamento);
-
-    await resetDatabaseFailedAttempts(user.id);
-    await clearRateLimit(rateKey);
+    redirectTo = enrollmentRequired ? "/configuracion/seguridad" : departamentoHome(user.departamento);
+    await recordSecurityEvent({
+      empresaId: user.empresa_id,
+      actorUserId: user.id,
+      action: "auth.login",
+      targetType: "sesion",
+      result: "exito",
+    });
   } catch {
     return { message: "No se pudo validar el acceso con la base de datos." };
   }
 
   redirect(redirectTo);
+}
+
+export async function completeMfaLogin(_state: LoginState, formData: FormData): Promise<LoginState> {
+  const challenge = String(formData.get("challenge") ?? "");
+  const code = String(formData.get("code") ?? "").trim();
+  if (!challenge || !code) return { message: "Ingresa el codigo de autenticacion." };
+  if (!isDatabaseConfigured) return { message: "PostgreSQL es requerido para validar MFA." };
+
+  type ChallengeRow = AuthUserRow & { challenge_hash: string; challenge_attempts: number };
+  const result = await withTransaction(async (execute) => {
+    const rows = await execute<ChallengeRow[]>(
+      `SELECT c.id_hash AS challenge_hash, c.intentos AS challenge_attempts,
+              u.id, u.nombre, u.apellido, u.email, u.rol, u.departamento, u.empresa_id,
+              u.estado, u.password_hash, u.intentos_fallidos, u.session_version, u.platform_role,
+              u.email_verificado_en, u.mfa_habilitado, u.mfa_secret_encrypted,
+              u.mfa_recovery_codes_hashes, u.mfa_last_used_step
+       FROM auth_mfa_challenges c
+       JOIN usuarios u ON u.id = c.usuario_id
+       WHERE c.id_hash = :challengeHash AND c.usado_en IS NULL
+         AND c.expira_en > CURRENT_TIMESTAMP AND c.intentos < 5 AND u.estado = 'Activo'
+       FOR UPDATE`,
+      { challengeHash: tokenHash(challenge) },
+    );
+    const user = rows[0];
+    if (!user?.mfa_secret_encrypted || !user.mfa_habilitado) return null;
+
+    const secret = decryptMfaSecret(user.mfa_secret_encrypted);
+    const step = validateTotp(secret, code);
+    let recoveryHashes = Array.isArray(user.mfa_recovery_codes_hashes) ? user.mfa_recovery_codes_hashes : [];
+    let usedRecovery = false;
+    if (step === null) {
+      const remaining = consumeRecoveryCode(user.id, code, recoveryHashes);
+      if (remaining) {
+        recoveryHashes = remaining;
+        usedRecovery = true;
+      }
+    }
+
+    if (step === null && !usedRecovery) {
+      await execute<ResultSetHeader>(
+        "UPDATE auth_mfa_challenges SET intentos = intentos + 1 WHERE id_hash = :challengeHash",
+        { challengeHash: user.challenge_hash },
+      );
+      return null;
+    }
+
+    if (step !== null) {
+      const updated = await execute<(RowDataPacket & { id: string })[]>(
+        `UPDATE usuarios SET mfa_last_used_step = :step
+         WHERE id = :userId AND (mfa_last_used_step IS NULL OR mfa_last_used_step < :step)
+         RETURNING id`,
+        { userId: user.id, step },
+      );
+      if (!updated[0]) return null;
+    } else {
+      await execute<ResultSetHeader>(
+        "UPDATE usuarios SET mfa_recovery_codes_hashes = CAST(:hashes AS jsonb) WHERE id = :userId",
+        { userId: user.id, hashes: JSON.stringify(recoveryHashes) },
+      );
+    }
+    await execute<ResultSetHeader>(
+      "UPDATE auth_mfa_challenges SET usado_en = CURRENT_TIMESTAMP WHERE id_hash = :challengeHash",
+      { challengeHash: user.challenge_hash },
+    );
+    return { user, usedRecovery };
+  });
+
+  if (!result) {
+    await recordSecurityEvent({ action: "auth.mfa.challenge", result: "rechazado" });
+    return { mfaRequired: true, mfaChallenge: challenge, message: "Codigo invalido, usado o vencido." };
+  }
+
+  const user = result.user;
+  await createSession({
+    userId: user.id,
+    email: user.email,
+    nombre: `${user.nombre} ${user.apellido}`,
+    rol: user.rol,
+    departamento: normalizeDepartamento(user.departamento),
+    empresaId: user.empresa_id,
+    sessionVersion: Number(user.session_version),
+    platformRole: user.platform_role,
+    mfaVerified: true,
+    mfaEnrollmentRequired: false,
+  });
+  await recordSecurityEvent({
+    empresaId: user.empresa_id,
+    actorUserId: user.id,
+    action: "auth.mfa.challenge",
+    targetType: "sesion",
+    result: "exito",
+    metadata: { recoveryCode: result.usedRecovery },
+  });
+  redirect(departamentoHome(user.departamento));
 }
 
 export async function register(_state: RegisterState, formData: FormData): Promise<RegisterState> {
@@ -414,12 +611,17 @@ export async function register(_state: RegisterState, formData: FormData): Promi
     redirect(departamentoHome(data.departamento));
   }
 
+  if (requireEmailVerification && !isSmtpConfigured()) {
+    return { message: "El registro esta temporalmente deshabilitado hasta configurar el servicio de correo." };
+  }
+
   try {
     const existingUser = await findUser(data.email);
     if (existingUser) {
       return { errors: { email: "Ya existe un usuario con este correo." } };
     }
 
+    const verificationToken = randomBytes(32).toString("base64url");
     const { empresaId, userId } = await withTransaction(async (execute) => {
       const empresaId = await createCompany(execute, data.empresa, data.email, data.telefono);
       const userId = randomUUID();
@@ -442,8 +644,41 @@ export async function register(_state: RegisterState, formData: FormData): Promi
           notas: "Usuario creado desde el login.",
         }
       );
+      await execute<ResultSetHeader>(
+        `INSERT INTO auth_tokens (usuario_id, tipo, token_hash, expira_en)
+         VALUES (:userId, 'email_verification', :tokenHash, CURRENT_TIMESTAMP + INTERVAL '24 hours')`,
+        { userId, tokenHash: tokenHash(verificationToken) }
+      );
+      await execute<ResultSetHeader>(
+        `INSERT INTO membresias (usuario_id, empresa_id, rol, estado)
+         VALUES (:userId, :empresaId, 'owner', 'Activa')
+         ON CONFLICT (usuario_id, empresa_id) DO UPDATE SET rol = 'owner', estado = 'Activa'`,
+        { userId, empresaId }
+      );
       return { empresaId, userId };
     });
+
+    if (isSmtpConfigured()) {
+      const verifyUrl = `${publicAppUrl()}/api/auth/verify-email?token=${encodeURIComponent(verificationToken)}`;
+      await sendEmail({
+        to: data.email,
+        subject: "Verifica tu cuenta de AgroSync",
+        text: `Verifica tu cuenta ingresando a este enlace: ${verifyUrl}\n\nEl enlace vence en 24 horas.`,
+      });
+    }
+
+    if (requireEmailVerification) {
+      await recordSecurityEvent({
+        empresaId,
+        actorUserId: userId,
+        action: "auth.registration",
+        targetType: "usuario",
+        targetId: userId,
+        result: "exito",
+        metadata: { verificationRequired: true },
+      });
+      return { ok: true, message: "Cuenta creada. Revisa tu correo para verificarla antes de ingresar." };
+    }
 
     await createSession({
       userId,
@@ -453,6 +688,7 @@ export async function register(_state: RegisterState, formData: FormData): Promi
       departamento: data.departamento,
       empresaId,
       sessionVersion: 1,
+      platformRole: "none",
     });
   } catch {
     return { message: "No se pudo crear el usuario. Revisa la conexion y el esquema de PostgreSQL." };
@@ -461,23 +697,109 @@ export async function register(_state: RegisterState, formData: FormData): Promi
   redirect(departamentoHome(publicIdentity.departamento));
 }
 
+export async function requestPasswordReset(_state: PasswordRecoveryState, formData: FormData): Promise<PasswordRecoveryState> {
+  const email = String(formData.get("email") ?? "").toLowerCase().trim();
+  const genericMessage = "Si el correo pertenece a una cuenta activa, recibiras un enlace de recuperacion.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { message: "Ingresa un correo valido." };
+  if (!isDatabaseConfigured || !isSmtpConfigured()) return { ok: true, message: genericMessage };
+
+  const user = await findUser(email);
+  if (user?.estado === "Activo") {
+    const token = randomBytes(32).toString("base64url");
+    await withTransaction(async (execute) => {
+      await execute<ResultSetHeader>(
+        "UPDATE auth_tokens SET usado_en = CURRENT_TIMESTAMP WHERE usuario_id = :userId AND tipo = 'password_reset' AND usado_en IS NULL",
+        { userId: user.id }
+      );
+      await execute<ResultSetHeader>(
+        `INSERT INTO auth_tokens (usuario_id, tipo, token_hash, expira_en)
+         VALUES (:userId, 'password_reset', :tokenHash, CURRENT_TIMESTAMP + INTERVAL '30 minutes')`,
+        { userId: user.id, tokenHash: tokenHash(token) }
+      );
+    });
+    await sendEmail({
+      to: user.email,
+      subject: "Recupera tu acceso a AgroSync",
+      text: `Define una nueva contrasena en: ${publicAppUrl()}/restablecer-contrasena?token=${encodeURIComponent(token)}\n\nEl enlace vence en 30 minutos.`,
+    });
+    await recordSecurityEvent({
+      empresaId: user.empresa_id,
+      actorUserId: user.id,
+      action: "auth.password_reset_requested",
+      targetType: "usuario",
+      targetId: user.id,
+      result: "exito",
+    });
+  }
+  return { ok: true, message: genericMessage };
+}
+
+export async function resetPassword(_state: PasswordRecoveryState, formData: FormData): Promise<PasswordRecoveryState> {
+  const token = String(formData.get("token") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const confirmation = String(formData.get("confirmPassword") ?? "");
+  if (password.length < 8) return { message: "La contrasena debe tener al menos 8 caracteres." };
+  if (password !== confirmation) return { message: "Las contrasenas no coinciden." };
+  if (!token || !isDatabaseConfigured) return { message: "El enlace no es valido o ya vencio." };
+
+  const result = await withTransaction(async (execute) => {
+    const rows = await execute<(RowDataPacket & { id: string; usuario_id: string; empresa_id: string })[]>(
+      `SELECT t.id, t.usuario_id, u.empresa_id
+       FROM auth_tokens t JOIN usuarios u ON u.id = t.usuario_id
+       WHERE t.token_hash = :tokenHash AND t.tipo = 'password_reset'
+         AND t.usado_en IS NULL AND t.expira_en > CURRENT_TIMESTAMP AND u.estado = 'Activo'
+       FOR UPDATE`,
+      { tokenHash: tokenHash(token) }
+    );
+    const row = rows[0];
+    if (!row) return null;
+    await execute<ResultSetHeader>(
+      `UPDATE usuarios SET password_hash = :passwordHash, session_version = session_version + 1,
+       intentos_fallidos = 0, bloqueado_en = NULL WHERE id = :userId`,
+      { userId: row.usuario_id, passwordHash: hashPassword(password) }
+    );
+    await execute<ResultSetHeader>("UPDATE auth_tokens SET usado_en = CURRENT_TIMESTAMP WHERE id = :id", { id: row.id });
+    await execute<ResultSetHeader>(
+      "UPDATE sesiones SET revocada_en = COALESCE(revocada_en, CURRENT_TIMESTAMP) WHERE usuario_id = :userId",
+      { userId: row.usuario_id }
+    );
+    return row;
+  });
+
+  if (!result) return { message: "El enlace no es valido o ya vencio." };
+  await recordSecurityEvent({
+    empresaId: result.empresa_id,
+    actorUserId: result.usuario_id,
+    action: "auth.password_reset_completed",
+    targetType: "usuario",
+    targetId: result.usuario_id,
+    result: "exito",
+  });
+  return { ok: true, message: "Contrasena actualizada. Ya puedes iniciar sesion." };
+}
+
 export async function logout() {
+  const session = await readSession();
+  if (session) {
+    await recordSecurityEvent({
+      empresaId: session.empresaId,
+      actorUserId: session.userId,
+      action: "auth.logout",
+      targetType: "sesion",
+      targetId: session.sessionId ?? null,
+      result: "exito",
+    });
+  }
   await deleteSession();
   redirect("/login");
 }
 
 export async function updateSessionProfile(_state: SettingsState, formData: FormData): Promise<SettingsState> {
-  const adminPassword = String(formData.get("adminPassword") ?? "");
-  if (!adminPasswordIsValid(adminPassword)) {
-    return { message: "Validacion de administrador general incorrecta." };
-  }
-
   const session = await readSession();
   if (!session) return { message: "No hay sesion activa." };
 
   const nombre = String(formData.get("nombre") ?? session.nombre).trim();
-  const departamento = normalizeDepartamento(String(formData.get("departamento") ?? session.departamento));
-  const rol = roleForDepartment(departamento);
+  if (nombre.length < 2 || nombre.length > 160) return { message: "El nombre debe tener entre 2 y 160 caracteres." };
 
   let nextSessionVersion = Number(session.sessionVersion);
   if (isDatabaseConfigured) {
@@ -486,8 +808,6 @@ export async function updateSessionProfile(_state: SettingsState, formData: Form
       `UPDATE usuarios
        SET nombre = :nombre,
            apellido = :apellido,
-           rol = :rol,
-           departamento = :departamento,
            session_version = session_version + 1
        WHERE id = :id AND estado = 'Activo'
        RETURNING session_version`,
@@ -495,8 +815,6 @@ export async function updateSessionProfile(_state: SettingsState, formData: Form
         id: session.userId,
         nombre: firstName || nombre,
         apellido: rest.join(" "),
-        rol,
-        departamento,
       }
     );
     if (!rows[0]) return { message: "No se pudo actualizar un usuario activo." };
@@ -512,8 +830,6 @@ export async function updateSessionProfile(_state: SettingsState, formData: Form
           ...user,
           nombre: firstName || nombre,
           apellido: rest.join(" "),
-          rol,
-          departamento,
           sessionVersion: nextSessionVersion,
         };
       })
@@ -525,9 +841,16 @@ export async function updateSessionProfile(_state: SettingsState, formData: Form
   await createSession({
     ...session,
     nombre,
-    rol,
-    departamento,
     sessionVersion: nextSessionVersion,
+  });
+
+  await recordSecurityEvent({
+    empresaId: session.empresaId,
+    actorUserId: session.userId,
+    action: "profile.update",
+    targetType: "usuario",
+    targetId: session.userId,
+    result: "exito",
   });
 
   return { ok: true, message: "Usuario actualizado correctamente." };

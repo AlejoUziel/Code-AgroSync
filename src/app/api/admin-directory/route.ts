@@ -3,10 +3,12 @@ import { isDatabaseConfigured, query, type ResultSetHeader, type RowDataPacket }
 import { hashPassword } from "@/lib/password";
 import { readSession } from "@/lib/session";
 import { accessErrorResponse, assertSameOrigin, requireAdministratorIT } from "@/lib/authorization";
+import { recordSecurityEvent } from "@/lib/security-events";
 import type { Empresa, EstadoUsuario, RolUsuario, Usuario } from "@/types/models";
 
 interface UserRow extends RowDataPacket {
   id: string;
+  codigo: string;
   nombre: string;
   apellido: string;
   email: string;
@@ -20,6 +22,7 @@ interface UserRow extends RowDataPacket {
 
 interface CompanyRow extends RowDataPacket {
   id: string;
+  codigo: string;
   nombre: string;
   nit: string;
   email: string;
@@ -57,6 +60,7 @@ function iso(value: Date | string | null) {
 function userFromRow(row: UserRow) {
   return {
     id: row.id,
+    codigo: row.codigo,
     nombre: row.nombre,
     apellido: row.apellido,
     email: row.email,
@@ -72,6 +76,7 @@ function userFromRow(row: UserRow) {
 function companyFromRow(row: CompanyRow) {
   return {
     id: row.id,
+    codigo: row.codigo,
     nombre: row.nombre,
     nit: row.nit,
     email: row.email,
@@ -88,7 +93,7 @@ function companyFromRow(row: CompanyRow) {
 
 async function findCompanyById(id: string) {
   const rows = await query<CompanyRow[]>(
-    `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+    `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
      FROM empresas
      WHERE id = :id
      LIMIT 1`,
@@ -145,9 +150,9 @@ export async function GET(request: Request) {
 
   if (tab === "empresas") {
     const rows = await query<CompanyRow[]>(
-      `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+      `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
        FROM empresas
-       WHERE nombre LIKE :q OR nit LIKE :q OR email LIKE :q OR ciudad LIKE :q
+       WHERE codigo LIKE :q OR nombre LIKE :q OR nit LIKE :q OR email LIKE :q OR ciudad LIKE :q
        ORDER BY nombre
        LIMIT 100`,
       { q }
@@ -160,9 +165,9 @@ export async function GET(request: Request) {
   }
 
   const rows = await query<UserRow[]>(
-    `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+    `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
      FROM usuarios
-     WHERE nombre LIKE :q OR apellido LIKE :q OR email LIKE :q OR rol LIKE :q
+     WHERE codigo LIKE :q OR nombre LIKE :q OR apellido LIKE :q OR email LIKE :q OR rol LIKE :q
      ORDER BY nombre, apellido
      LIMIT 100`,
     { q }
@@ -192,7 +197,7 @@ export async function POST(request: Request) {
     }
 
     const existingCompany = await query<CompanyRow[]>(
-      `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+      `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
        FROM empresas
        WHERE nit = :nit OR email = :email
        LIMIT 1`,
@@ -206,7 +211,7 @@ export async function POST(request: Request) {
     let id = body.id || randomUUID();
     if (!body.id && session?.empresaId) {
       const existingSessionCompany = await query<CompanyRow[]>(
-        `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+        `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
          FROM empresas
          WHERE id = :id
          LIMIT 1`,
@@ -246,13 +251,21 @@ export async function POST(request: Request) {
     }
 
     const rows = await query<CompanyRow[]>(
-      `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+      `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
        FROM empresas
        WHERE id = :id
        LIMIT 1`,
       { id }
     );
 
+    await recordSecurityEvent({
+      empresaId: session?.empresaId,
+      actorUserId: session?.userId,
+      action: "platform.company.create",
+      targetType: "empresa",
+      targetId: id,
+      result: "exito",
+    });
     return Response.json({ dbConfigured: true, item: companyFromRow(rows[0]) }, { status: 201 });
   }
 
@@ -265,7 +278,7 @@ export async function POST(request: Request) {
   const id = body.id || randomUUID();
   const createdAt = body.fechaCreacion ? new Date(body.fechaCreacion) : new Date();
   const existingUser = await query<UserRow[]>(
-    `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+    `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
      FROM usuarios
      WHERE email = :email
      LIMIT 1`,
@@ -311,13 +324,22 @@ export async function POST(request: Request) {
   }
 
   const rows = await query<UserRow[]>(
-    `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+    `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
      FROM usuarios
      WHERE id = :id
      LIMIT 1`,
     { id }
   );
 
+  await recordSecurityEvent({
+    empresaId: session?.empresaId,
+    actorUserId: session?.userId,
+    action: "platform.user.create",
+    targetType: "usuario",
+    targetId: id,
+    result: "exito",
+    metadata: { targetCompanyId: body.empresaId },
+  });
   return Response.json({ dbConfigured: true, item: userFromRow(rows[0]) }, { status: 201 });
 }
 
@@ -329,6 +351,7 @@ export async function PUT(request: Request) {
   }
 
   const url = new URL(request.url);
+  const session = await readSession();
   const id = url.searchParams.get("id");
 
   if (!id) {
@@ -344,7 +367,7 @@ export async function PUT(request: Request) {
 
     try {
       const duplicateCompany = await query<CompanyRow[]>(
-        `SELECT id, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
+        `SELECT id, codigo, nombre, nit, email, telefono, direccion, ciudad, pais, plan, estado, fecha_registro, notas
          FROM empresas
          WHERE (nit = :nit OR email = :email) AND id <> :id
          LIMIT 1`,
@@ -394,6 +417,14 @@ export async function PUT(request: Request) {
 
     const item = await findCompanyById(id);
     if (!item) return Response.json({ message: "Empresa no encontrada." }, { status: 404 });
+    await recordSecurityEvent({
+      empresaId: session?.empresaId,
+      actorUserId: session?.userId,
+      action: "platform.company.update",
+      targetType: "empresa",
+      targetId: id,
+      result: "exito",
+    });
     return Response.json({ dbConfigured: true, item });
   }
 
@@ -405,7 +436,7 @@ export async function PUT(request: Request) {
 
   try {
     const duplicateUser = await query<UserRow[]>(
-      `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+      `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
        FROM usuarios
        WHERE email = :email AND id <> :id
        LIMIT 1`,
@@ -456,7 +487,7 @@ export async function PUT(request: Request) {
   }
 
   const rows = await query<UserRow[]>(
-    `SELECT id, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
+    `SELECT id, codigo, nombre, apellido, email, telefono, rol, empresa_id, estado, fecha_creacion, ultimo_acceso
      FROM usuarios
      WHERE id = :id
      LIMIT 1`,
@@ -467,6 +498,15 @@ export async function PUT(request: Request) {
     return Response.json({ message: "Usuario no encontrado." }, { status: 404 });
   }
 
+  await recordSecurityEvent({
+    empresaId: session?.empresaId,
+    actorUserId: session?.userId,
+    action: "platform.user.update",
+    targetType: "usuario",
+    targetId: id,
+    result: "exito",
+    metadata: { targetCompanyId: body.empresaId },
+  });
   return Response.json({ dbConfigured: true, item: userFromRow(rows[0]) });
 }
 
@@ -478,6 +518,7 @@ export async function DELETE(request: Request) {
   }
 
   const url = new URL(request.url);
+  const session = await readSession();
   const id = url.searchParams.get("id");
 
   if (!id) {
@@ -497,6 +538,16 @@ export async function DELETE(request: Request) {
       { status: 409 }
     );
   }
+
+  const targetType = url.searchParams.get("tab") === "empresas" ? "empresa" : "usuario";
+  await recordSecurityEvent({
+    empresaId: session?.empresaId,
+    actorUserId: session?.userId,
+    action: `platform.${targetType}.delete`,
+    targetType,
+    targetId: id,
+    result: "exito",
+  });
 
   return Response.json({ dbConfigured: true, ok: true });
 }

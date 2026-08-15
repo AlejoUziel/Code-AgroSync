@@ -12,6 +12,7 @@ export type SessionUser = {
   empresaId: string;
   initials: string;
   sessionVersion: number;
+  platformRole?: "none" | "platform_support" | "platform_admin";
 };
 
 let cachedUser: SessionUser | null | undefined;

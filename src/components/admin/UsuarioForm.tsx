@@ -370,7 +370,7 @@ export default function UsuarioForm({
                     onChange={(e) => set("empresaId", e.target.value)}
                     options={availableEmpresas.map((e) => ({
                       value: e.id,
-                      label: `${e.nombre} (${e.plan})`,
+                      label: `${e.codigo ?? e.id} · ${e.nombre} (${e.plan})`,
                     }))}
                     placeholder="Seleccionar empresa..."
                     error={!!err("empresaId")}
