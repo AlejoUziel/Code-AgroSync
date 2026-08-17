@@ -12,6 +12,8 @@ function clearInvalidSession(response: NextResponse) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(cookieName)?.value;
+  const isApiRequest = pathname.startsWith("/api/");
+  const isMfaEnrollmentApi = pathname === "/api/session" || pathname === "/api/security/mfa";
 
   const publicAuthPage = pathname === "/login" || pathname === "/recuperar-contrasena" || pathname === "/restablecer-contrasena" || pathname === "/aceptar-invitacion";
 
@@ -35,6 +37,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!token) {
+    if (isApiRequest) return NextResponse.next();
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
@@ -43,9 +46,12 @@ export async function proxy(request: NextRequest) {
   try {
     const { payload } = await jwtVerify(token, getSessionSecret());
     if (!Number.isInteger(Number(payload.sessionVersion))) {
-      return clearInvalidSession(NextResponse.redirect(new URL("/login", request.url)));
+      return clearInvalidSession(isApiRequest ? NextResponse.next() : NextResponse.redirect(new URL("/login", request.url)));
     }
-    if (payload.mfaEnrollmentRequired && pathname !== "/configuracion/seguridad") {
+    if (payload.mfaEnrollmentRequired && pathname !== "/configuracion/seguridad" && !isMfaEnrollmentApi) {
+      if (isApiRequest) {
+        return NextResponse.json({ message: "Completa la configuracion MFA para continuar." }, { status: 403 });
+      }
       return NextResponse.redirect(new URL("/configuracion/seguridad", request.url));
     }
     if (pathname === "/" || ["/admin", "/ops", "/tech"].some((prefix) => pathname.startsWith(prefix))) {
@@ -59,7 +65,7 @@ export async function proxy(request: NextRequest) {
     }
     return NextResponse.next();
   } catch {
-    return clearInvalidSession(NextResponse.redirect(new URL("/login", request.url)));
+    return clearInvalidSession(isApiRequest ? NextResponse.next() : NextResponse.redirect(new URL("/login", request.url)));
   }
 }
 
