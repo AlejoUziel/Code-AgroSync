@@ -36,6 +36,7 @@ const migrationFiles = [
   "db/05-public-business-codes.sql",
   "db/07-saas-foundation.sql",
   "db/08-enterprise-readiness.sql",
+  "db/09-global-resource-id-sequences.sql",
 ];
 const client = new pg.Client({ connectionString: hardenedPostgresUrl(connectionString) });
 
@@ -49,7 +50,7 @@ try {
   )`);
   for (const file of migrationFiles) {
     const sql = await readFile(new URL(`../${file}`, import.meta.url), "utf8");
-    const checksum = createHash("sha256").update(sql).digest("hex");
+    const checksum = createHash("sha256").update(sql.replace(/\r\n/g, "\n")).digest("hex");
     const applied = await client.query("SELECT checksum FROM schema_migrations WHERE nombre = $1", [file]);
     if (applied.rows[0]) {
       if (applied.rows[0].checksum !== checksum) {

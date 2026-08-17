@@ -78,6 +78,17 @@ const resourcePrefixes: Record<ResourceKey, string> = {
   reportes: "REP",
 };
 
+const resourceSequences: Record<ResourceKey, string> = {
+  parcelas: "agrosync_parcelas_id_seq",
+  cultivos: "agrosync_cultivos_id_seq",
+  inventario: "agrosync_inventario_id_seq",
+  cosechas: "agrosync_cosechas_id_seq",
+  empleados: "agrosync_empleados_id_seq",
+  finanzas: "agrosync_finanzas_id_seq",
+  alertas: "agrosync_alertas_id_seq",
+  reportes: "agrosync_reportes_id_seq",
+};
+
 function normalizeCode(value: string) {
   return value
     .normalize("NFD")
@@ -107,14 +118,12 @@ function codeContext(resource: ResourceKey, item: ResourceRecord) {
 
 async function nextResourceId(execute: QueryExecutor, resource: ResourceKey, item: ResourceRecord) {
   const base = `${resourcePrefixes[resource]}-${codeContext(resource, item)}`;
-  const config = stores[resource];
-  await execute("SELECT pg_advisory_xact_lock(hashtext(:lockKey))", { lockKey: `agrosync:${resource}:${base}` });
-  const rows = await execute<(RowDataPacket & { id: string })[]>(
-    `SELECT id FROM ${config.table} WHERE id LIKE :pattern ORDER BY id DESC LIMIT 1`,
-    { pattern: `${base}-%` }
+  const rows = await execute<(RowDataPacket & { value: string })[]>(
+    "SELECT nextval(CAST(:sequence AS regclass))::text AS value",
+    { sequence: resourceSequences[resource] },
   );
-  const last = rows[0]?.id ?? "";
-  const next = (Number(last.match(/-(\d+)$/)?.[1] ?? 0) || 0) + 1;
+  const next = Number(rows[0]?.value);
+  if (!Number.isSafeInteger(next) || next < 1) throw new Error("No se pudo generar el identificador del registro.");
   return `${base}-${String(next).padStart(3, "0")}`;
 }
 
