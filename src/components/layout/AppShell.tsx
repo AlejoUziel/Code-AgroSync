@@ -20,7 +20,7 @@ export default function AppShell({
   pageSubtitle,
 }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, loading } = useSessionState();
+  const { user, loading, unauthorized, connectionError, retry } = useSessionState();
 
   useEffect(() => {
     const handleResize = () => {
@@ -38,15 +38,20 @@ export default function AppShell({
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) window.location.replace("/login");
-  }, [loading, user]);
+    if (!loading && unauthorized) window.location.replace("/login");
+  }, [loading, unauthorized]);
 
   if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--background)]" role="status" aria-live="polite">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 size={18} className="animate-spin text-[var(--primary)]" />
-          Validando sesión segura...
+          <Loader2 size={18} className={cn("text-[var(--primary)]", loading && "animate-spin")} />
+          {connectionError ? "Conexión temporalmente interrumpida." : "Validando sesión segura..."}
+          {connectionError && (
+            <button type="button" onClick={() => void retry()} className="rounded-lg border px-3 py-1 text-xs font-medium">
+              Reintentar
+            </button>
+          )}
         </div>
       </div>
     );
